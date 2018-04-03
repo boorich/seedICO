@@ -1,2 +1,2 @@
 # seedICO
-Framework for Token Sales based on Ethereum
+Framework for token sales based on Ethereum
