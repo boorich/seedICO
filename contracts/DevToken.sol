@@ -176,8 +176,6 @@ contract Voting is DevToken {
         string description;
         // amount of ETH-reward for development tasks
         uint256 value;
-        // number of confirmations on development task
-        uint256 confirmationCount;
         // mapping of users who confirmed a task
         mapping(address => bool) confirmed;
         // bool if reward has been collected yet
@@ -269,7 +267,7 @@ contract Voting is DevToken {
 
             // saves proposal in acceptedProposals array
             uint256 newID = acceptedProposals.length;
-            acceptedProposals.push(AcceptedProposal({ID: newID, proposalID: _ID, description: proposals[_ID].description, value: average, confirmationCount: 0, rewarded: false}));
+            acceptedProposals.push(AcceptedProposal({ID: newID, proposalID: _ID, description: proposals[_ID].description, value: average, rewarded: false}));
             // event generation
             emit SuccessfulProposal(_ID, newID, average);
 
