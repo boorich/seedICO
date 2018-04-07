@@ -44,14 +44,6 @@ contract Token {
     string public name;          // name of token
     string public symbol;        // symbol of token
     uint8 public decimals;       // decimals of token
-
-    // constructor setting token variables
-    function Token(string _name, string _symbol, uint8 _decimals) public {
-        name = _name;
-        symbol = _symbol;
-        require(decimals <= 18);
-        decimals = _decimals;
-    }
 }
 
 // DevToken functions which are active during development phase
@@ -67,22 +59,6 @@ contract Funding is Token {
     uint256 public maxStake;
     // tokens that are being sold per ether
     uint256 public tokensPerEther;
-
-    // constructor setting contract variables
-    function DevToken(uint256 _maxSupply, uint256 _maxStake, address _owner, uint256 _tokensPerEther, address[] _owners, uint256[] _balances) public {
-        owner = msg.sender;
-        emergencyWithdrawal = now;
-        maxSupply = _maxSupply;
-        // Adjust the token value to variable decimal-counts
-        tokensPerEther = _tokensPerEther.div(10**(18 - decimals));
-        require(_owners.length == _balances.length);
-        for (uint256 i = 0; i < _owners.length; i++) {
-            balanceOf[_owners[i]] = tokensPerEther.mul(balanceOf[_owners[i]].add(_balances[i]));
-            totalSupply = totalSupply.add(tokensPerEther.mul(_balances[i]));
-        }
-        require(_maxStake >= totalSupply);
-        maxStake = _maxStake;
-    }
 
     // modifiers: only allows Owner/Pool/Contract to call certain functions
     modifier onlyOwner {
@@ -126,7 +102,7 @@ contract Funding is Token {
     // Get the number of DevTokens that will be sold for 1 ETH
     function getPrice() view public returns(uint _tokensPerEther) {
         // Adjust the token value to variable decimal-counts
-        return tokensPerEther.mul(10**(18-decimals));
+        return tokensPerEther.mul(10**(18-uint256(decimals)));
     }
 
 }
@@ -177,12 +153,6 @@ contract TaskVoting is Voting {
     // array of polls
     Proposal[] public proposals;
 
-    // constructor
-    function Voting(uint256 _proposalDuration, uint256 _minVotes) public {
-        proposalDuration = _proposalDuration;
-        minVotes = _minVotes;
-    }
-
     // propose a new development task
     function propose(string _description, uint256 _value) public onlyTokenHolder {
 
@@ -195,7 +165,7 @@ contract TaskVoting is Voting {
         uint256 ID = proposals.length;
 
         // initializes new proposal as a struct and pushes it into the proposal array
-        proposals.push(Proposal({ID: ID, description: _description, value: _value, start: now, yes: 0, no: 0, active: true}));
+        proposals.push(Proposal({ID: ID, description: _description, value: _value, start: now, yes: 0, no: 0, active: true, accepted: false, rewarded: false}));
 
         // event generated for proposal creation
         emit ProposalCreation(ID, _description);
@@ -243,21 +213,19 @@ contract TaskVoting is Voting {
         proposals[_ID].active = false;
 
         // rejects proposal if not enough people voted on it
-        if (proposals[_ID].no.add(proposals[_ID].yes) < (minVotes.mul(totalSupply)).div(100)) {
+        if (proposals[_ID].no.add(proposals[_ID].yes) < (minVotes.mul(totalSupply))/100) {
             // event generation
             emit RejectedProposal(_ID, proposals[_ID].description, "Participation too low");
 
         // compares yes and no votes
         } else if (proposals[_ID].yes > proposals[_ID].no) {
-
             proposals[_ID].accepted = true;
-
             // event generation
             emit SuccessfulProposal(_ID, proposals[_ID].description, proposals[_ID].value);
 
         } else {
             // event generation
-            emit RejectedProposal(_ID, proposals[_ID].description);
+            emit RejectedProposal(_ID, proposals[_ID].description, "Proposal rejected by vote");
         }
     
     }
@@ -271,6 +239,36 @@ contract TaskVoting is Voting {
 }
 
 // DevRevToken combines DevToken and RevToken into one token
-contract DevRevToken is TaskVoting {
+contract DevToken is TaskVoting {
+    function DevToken(
+        // arguments Token
+        string _name, string _symbol, uint8 _decimals, 
+        // arguments Funding
+        uint256 _maxSupply, uint256 _maxStake, address _owner, uint256 _tokensPerEther, address[] _owners, uint256[] _balances, 
+        // arguments TaskVoting
+        uint256 _proposalDuration, uint256 _minVotes) public {
 
+        // constructor Token
+        name = _name;
+        symbol = _symbol;
+        require(decimals <= 18);
+        decimals = _decimals;
+        // constructor Funding
+        owner = msg.sender;
+        emergencyWithdrawal = now;
+        maxSupply = _maxSupply;
+        // Adjust the token value to variable decimal-counts
+        tokensPerEther = _tokensPerEther/(10**(18 - uint256(decimals)));
+        require(_owners.length == _balances.length);
+        for (uint256 i = 0; i < _owners.length; i++) {
+            balanceOf[_owners[i]] = tokensPerEther.mul(balanceOf[_owners[i]].add(_balances[i]));
+            totalSupply = totalSupply.add(tokensPerEther.mul(_balances[i]));
+        }
+        require(_maxStake >= totalSupply);
+        maxStake = _maxStake;
+        // constructor TaskVoting
+        proposalDuration = _proposalDuration;
+        minVotes = _minVotes;
+
+    }
 }
