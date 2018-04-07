@@ -120,8 +120,6 @@ contract Voting is DevToken {
     uint256 proposalDuration;
     // number of minimum votes for proposal to get accepted
     uint256 minVotes;
-    // number of confirmations needed to release funds
-    uint256 confirmationAmount;
     // each address can propose one proposal at a time
     mapping(address => uint256) lastProposal;
 
@@ -177,10 +175,9 @@ contract Voting is DevToken {
     AcceptedProposal[] public acceptedProposals;
 
     // constructor
-    function Voting(uint256 _proposalDuration, uint256 _minVotes, uint256 _confirmationAmount) public {
+    function Voting(uint256 _proposalDuration, uint256 _minVotes) public {
         proposalDuration = _proposalDuration;
         minVotes = _minVotes;
-        confirmationAmount = _confirmationAmount;
     }
 
     // propose a new development task
