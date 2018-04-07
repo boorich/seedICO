@@ -9,18 +9,18 @@ RevTokens give the right to collect a dividend
 // Safe Math library that automatically checks for overflows and underflows
 library SafeMath {
     // Safe multiplication
-    function mul(uint256 a, uint256 b) internal pure returns (uint) {
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a * b;
         require(a == 0 || c / a == b);
         return c;
     }
     // Safe subtraction
-    function sub(uint256 a, uint256 b) internal pure returns (uint) {
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b <= a);
         return a - b;
     }
     // Safe addition
-    function add(uint256 a, uint256 b) internal pure returns (uint) {
+    function add(uint256 a, uint256 b) internal pure returns (uint156) {
         uint256 c = a + b;
         require(c>=a && c>=b);
         return c;
@@ -80,7 +80,7 @@ contract DevToken is Token {
         _;
     }
     modifier onlyTokenHolder {
-        require(balanceOf[msg.sender] > 0);
+        require(balanceOf[msg.sender] > 0 || msg.sender == address(this));
         // require(!banned[msg.sender]);
         _;
     }
@@ -129,7 +129,7 @@ contract Voting is DevToken {
     // creation event
     event ProposalCreation(uint256 indexed ID, string indexed description);
     // vote event
-    event UserVote(uint256 indexed ID, address indexed user, uint256 indexed value);
+    event UserVote(uint256 indexed ID, address indexed user, bool indexed value);
     // successful proposal event
     event SuccessfulProposal(uint256 indexed ID, uint256 indexed newID, uint256 indexed value);
     // rejected proposal event
@@ -184,7 +184,7 @@ contract Voting is DevToken {
     }
 
     // propose a new development task
-    function propose(string _description) public onlyTokenHolder {
+    function propose(string _description, uint256 _value) public onlyTokenHolder {
 
         // allows one proposal per week and resets value after successful proposal
         require(now.sub(lastProposal[msg.sender]) > proposalDuration);
@@ -194,7 +194,7 @@ contract Voting is DevToken {
         uint256 ID = proposals.length;
 
         // initializes new proposal as a struct and pushes it into the proposal array
-        proposals.push(Proposal({ID: ID, description: _description, value: 0, start: now, voteCount: 0, yes: 0, no: 0, active: true}));
+        proposals.push(Proposal({ID: ID, description: _description, value: _value, start: now, voteCount: 0, yes: 0, no: 0, active: true}));
 
         // event generated for proposal creation
         emit ProposalCreation(ID, _description);
@@ -202,13 +202,15 @@ contract Voting is DevToken {
     }
 
     // vote on a development task
-    function vote(uint256 _ID, uint256 _value) public onlyTokenHolder {
+    function vote(uint256 _ID, bool _vote) public onlyTokenHolder {
 
         // proposal has to be active
         require(proposals[_ID].active);
 
         // proposal has to be active less than one week
-        require(now.sub(proposals[_ID].start) < proposalDuration);
+        if (now.sub(proposals[_ID].start) >= proposalDuration) {
+            end(_ID);
+        }
 
         // checks if tokenholder has already voted
         require(!proposals[_ID].voted[msg.sender]);
@@ -216,23 +218,19 @@ contract Voting is DevToken {
         proposals[_ID].voted[msg.sender] = true;
 
         // if the value is 0 it's considered no
-        if (_value > 0) {
-
-            // increment count of yes votes to calculate average dev-payout
+        if (_vote) {
+            // increment count of votes
             proposals[_ID].voteCount = proposals[_ID].voteCount.add(1);
-
             // registers the balance of msg.sender as a yes vote
             proposals[_ID].yes = proposals[_ID].yes.add(balanceOf[msg.sender]);
-
-            // adds desired value and adds it to average dev-payout
-            proposals[_ID].value = proposals[_ID].value.add(_value);
-
         } else {
+            // increment count of votes
+            proposals[_ID].voteCount = proposals[_ID].voteCount.add(1);
             // registers the balance of msg.sender as a no vote
             proposals[_ID].no = proposals[_ID].no.add(balanceOf[msg.sender]);
         }
         // event generated for tokenholder vote
-        emit UserVote(_ID, msg.sender, _value);
+        emit UserVote(_ID, msg.sender, _vote);
 
     }
 
