@@ -46,19 +46,19 @@ contract Token {
     uint8 public decimals;       // decimals of token
 
     // constructor setting token variables
-    function Token() public {
-        name = "DevToken";
-        symbol = "DT";
-        decimals = 18;
-        totalSupply = 0;
+    function Token(string _name, string _symbol, uint8 _decimals) public {
+        name = _name;
+        symbol = _symbol;
+        require(decimals <= 18);
+        decimals = _decimals;
     }
 }
 
 // DevToken functions which are active during development phase
-contract DevToken is Token {
+contract Funding is Token {
 
     // address of the developers
-    address public devs;
+    address public owner;
     // maximum supply of the token
     uint256 public maxSupply;
     // time since the last emergency withdrawal
@@ -69,16 +69,24 @@ contract DevToken is Token {
     uint256 public tokensPerEther;
 
     // constructor setting contract variables
-    function DevToken(uint256 _maxSupply, uint256 _maxStake, address _devs) public {
-        devs = msg.sender;
+    function DevToken(uint256 _maxSupply, uint256 _maxStake, address _owner, uint256 _tokensPerEther, address[] _owners, uint256[] _balances) public {
+        owner = msg.sender;
         emergencyWithdrawal = now;
         maxSupply = _maxSupply;
+        // Adjust the token value to variable decimal-counts
+        tokensPerEther = _tokensPerEther.div(10**(18 - decimals));
+        require(_owners.length == _balances.length);
+        for (uint256 i = 0; i < _owners.length; i++) {
+            balanceOf[_owners[i]] = tokensPerEther.mul(balanceOf[_owners[i]].add(_balances[i]));
+            totalSupply = totalSupply.add(tokensPerEther.mul(_balances[i]));
+        }
+        require(_maxStake >= totalSupply);
         maxStake = _maxStake;
     }
 
     // modifiers: only allows Owner/Pool/Contract to call certain functions
-    modifier onlyDev {
-        require(msg.sender == devs);
+    modifier onlyOwner {
+        require(msg.sender == owner);
         _;
     }
     modifier onlyTokenHolder {
@@ -94,7 +102,7 @@ contract DevToken is Token {
         totalSupply = totalSupply.add(msg.value.mul(tokensPerEther));
 
         // fails if total supply surpasses maximum supply
-        require(totalSupply < maxSupply);
+        require(totalSupply <= maxSupply);
         // user cannot deposit more than "maxStake"% of the total supply
         require(balanceOf[msg.sender] < totalSupply.mul(maxStake)/100);
 
@@ -102,11 +110,11 @@ contract DevToken is Token {
         emit Transfer(address(this), msg.sender, msg.value.mul(tokensPerEther));
     }
 
-    // allows devs to withdraw 1 ether per week in case of an emergency or a malicous attack that prevents developers to access ETH in the contract at all
-    function emergencyWithdraw() public onlyDev {
+    // allows owner to withdraw 1 ether per week in case of an emergency or a malicous attack that prevents developers to access ETH in the contract at all
+    function emergencyWithdraw() public onlyOwner {
         if (now.sub(emergencyWithdrawal) > 7 days) {
             emergencyWithdrawal = now;
-            devs.transfer(1 ether);
+            owner.transfer(1 ether);
         }
     }
     // constant function: return maximum possible investment per person
@@ -114,28 +122,25 @@ contract DevToken is Token {
         return totalSupply.mul(maxStake)/100;
     }
 
-    // set the price per token in ether
-    function setPrice(uint _tokensPerEther) public onlyDev {
-        // Adjust the token value to variable decimal-counts
-        tokensPerEther = _tokensPerEther.div(10**(18.sub(decimals)));
-    }
 
     // Get the number of DevTokens that will be sold for 1 ETH
-    function getPrice() view public onlyDev returns(uint _tokensPerEther) {
+    function getPrice() view public returns(uint _tokensPerEther) {
         // Adjust the token value to variable decimal-counts
-        return tokensPerEther.mul(10**(18.sub(decimals)));
+        return tokensPerEther.mul(10**(18-decimals));
     }
 
 }
-
 // voting implementation of DevToken contract
-contract Voting is DevToken {
+contract Voting is Funding {
+    // limits the amount of proposals that can be made at time (optimum 1 proposal at a time, depends on proposal Durations of )
+    mapping(address => uint256) lastProposal;
+}
+
+contract TaskVoting is Voting {
     // duration of voting on a proposal
     uint256 proposalDuration;
-    // number of minimum votes for proposal to get accepted
+    // percentage of minimum votes for proposal to get accepted
     uint256 minVotes;
-    // each address can propose one proposal at a time
-    mapping(address => uint256) lastProposal;
 
     // Events
     // creation event
@@ -143,9 +148,9 @@ contract Voting is DevToken {
     // vote event
     event UserVote(uint256 indexed ID, address indexed user, bool indexed value);
     // successful proposal event
-    event SuccessfulProposal(uint256 indexed ID, uint256 indexed newID, uint256 indexed value);
+    event SuccessfulProposal(uint256 indexed ID, string indexed description, uint256 indexed value);
     // rejected proposal event
-    event RejectedProposal(uint256 indexed ID, string indexed description);
+    event RejectedProposal(uint256 indexed ID, string indexed description, string indexed reason);
 
     struct Proposal {
         // ID of proposal
@@ -156,8 +161,6 @@ contract Voting is DevToken {
         uint256 value;
         // timestamp when poll started
         uint256 start;
-        // number of yes votes
-        uint256 voteCount;
         // collects votes
         uint256 yes;
         uint256 no;
@@ -165,26 +168,14 @@ contract Voting is DevToken {
         mapping(address => bool) voted;
         // bool if poll is active
         bool active;
-    }
-
-    struct AcceptedProposal {
-        // ID of proposal
-        uint256 ID;
-        // ID of old proposal
-        uint256 proposalID;
-        // description of proposal
-        string description;
-        // amount of ETH-reward for development tasks
-        uint256 value;
-        // mapping of users who confirmed a task
-        mapping(address => bool) confirmed;
-        // bool if reward has been collected yet
+        //
+        bool accepted;
+        //
         bool rewarded;
     }
 
     // array of polls
     Proposal[] public proposals;
-    AcceptedProposal[] public acceptedProposals;
 
     // constructor
     function Voting(uint256 _proposalDuration, uint256 _minVotes) public {
@@ -195,6 +186,7 @@ contract Voting is DevToken {
     // propose a new development task
     function propose(string _description, uint256 _value) public onlyTokenHolder {
 
+        require(_value > address(this).balance);
         // allows one proposal per week and resets value after successful proposal
         require(now.sub(lastProposal[msg.sender]) > proposalDuration);
         lastProposal[msg.sender] = now;
@@ -203,7 +195,7 @@ contract Voting is DevToken {
         uint256 ID = proposals.length;
 
         // initializes new proposal as a struct and pushes it into the proposal array
-        proposals.push(Proposal({ID: ID, description: _description, value: _value, start: now, voteCount: 0, yes: 0, no: 0, active: true}));
+        proposals.push(Proposal({ID: ID, description: _description, value: _value, start: now, yes: 0, no: 0, active: true}));
 
         // event generated for proposal creation
         emit ProposalCreation(ID, _description);
@@ -228,13 +220,9 @@ contract Voting is DevToken {
 
         // if the value is 0 it's considered no
         if (_vote) {
-            // increment count of votes
-            proposals[_ID].voteCount = proposals[_ID].voteCount.add(1);
             // registers the balance of msg.sender as a yes vote
             proposals[_ID].yes = proposals[_ID].yes.add(balanceOf[msg.sender]);
         } else {
-            // increment count of votes
-            proposals[_ID].voteCount = proposals[_ID].voteCount.add(1);
             // registers the balance of msg.sender as a no vote
             proposals[_ID].no = proposals[_ID].no.add(balanceOf[msg.sender]);
         }
@@ -255,21 +243,17 @@ contract Voting is DevToken {
         proposals[_ID].active = false;
 
         // rejects proposal if not enough people voted on it
-        if (proposals[_ID].voteCount < minVotes) {
+        if (proposals[_ID].no.add(proposals[_ID].yes) < (minVotes.mul(totalSupply)).div(100)) {
             // event generation
-            emit RejectedProposal(_ID, proposals[_ID].description);
+            emit RejectedProposal(_ID, proposals[_ID].description, "Participation too low");
 
         // compares yes and no votes
         } else if (proposals[_ID].yes > proposals[_ID].no) {
 
-            // calculates average of all uservotes 
-            uint256 average = proposals[_ID].value / proposals[_ID].voteCount;
+            proposals[_ID].accepted = true;
 
-            // saves proposal in acceptedProposals array
-            uint256 newID = acceptedProposals.length;
-            acceptedProposals.push(AcceptedProposal({ID: newID, proposalID: _ID, description: proposals[_ID].description, value: average, rewarded: false}));
             // event generation
-            emit SuccessfulProposal(_ID, newID, average);
+            emit SuccessfulProposal(_ID, proposals[_ID].description, proposals[_ID].value);
 
         } else {
             // event generation
@@ -287,6 +271,6 @@ contract Voting is DevToken {
 }
 
 // DevRevToken combines DevToken and RevToken into one token
-contract DevRevToken is Voting {
+contract DevRevToken is TaskVoting {
 
 }
