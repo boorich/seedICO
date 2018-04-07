@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity 0.4.21;
 
 /**
 To Implement: DevTokens are non tradable and only for voting purposes. 
@@ -11,18 +11,18 @@ library SafeMath {
     // Safe multiplication
     function mul(uint256 a, uint256 b) internal pure returns (uint) {
         uint256 c = a * b;
-        assert(a == 0 || c / a == b);
+        require(a == 0 || c / a == b);
         return c;
     }
     // Safe subtraction
     function sub(uint256 a, uint256 b) internal pure returns (uint) {
-        assert(b <= a);
+        require(b <= a);
         return a - b;
     }
     // Safe addition
     function add(uint256 a, uint256 b) internal pure returns (uint) {
         uint256 c = a + b;
-        assert(c>=a && c>=b);
+        require(c>=a && c>=b);
         return c;
     }
 }
@@ -37,8 +37,6 @@ contract Token {
 
     // mapping of all balances
     mapping (address => uint256) public balanceOf;
-    // mapping of spending allowances
-    mapping (address => mapping (address => uint256)) public allowance;
     // The total supply of the token
     uint256 public totalSupply;
 
@@ -67,17 +65,13 @@ contract DevToken is Token {
     uint256 public emergencyWithdrawal;
     // maximum stake someone can have of all tokens (in percent)
     uint256 public maxStake;
-    // the maximum amount someone can deposit before the stake percentage starts to count
-    uint256 public maxSimpleInvestment;
 
     // constructor setting contract variables
-    function DevToken(uint256 _maxSupply, uint256 _maxStake, uint256 _maxSimpleInvestment, address _devs) public {
+    function DevToken(uint256 _maxSupply, uint256 _maxStake, address _devs) public {
         devs = msg.sender;
         emergencyWithdrawal = now;
         maxSupply = _maxSupply;
         maxStake = _maxStake;
-        maxSimpleInvestment = _maxSimpleInvestment;
-        devs = _devs;
     }
 
     // modifiers: only allows Owner/Pool/Contract to call certain functions
@@ -99,11 +93,9 @@ contract DevToken is Token {
 
         // fails if total supply surpasses maximum supply
         require(totalSupply < maxSupply);
-        // up to 5 Ethers can be deposited
-        if (balanceOf[msg.sender] > maxSimpleInvestment) {
-            // If user wants to deposit more than "maxSimpleInvestment" Ether, he cannot deposit more than "maxStake"% of the total supply
-            require(balanceOf[msg.sender] < totalSupply.mul(maxStake)/100);
-        }
+        // If user wants to deposit more than "maxSimpleInvestment" Ether, he cannot deposit more than "maxStake"% of the total supply
+        require(balanceOf[msg.sender] < totalSupply.mul(maxStake)/100);
+
         // transfer event
         Transfer(address(this), msg.sender, msg.value);
     }
@@ -117,11 +109,7 @@ contract DevToken is Token {
     }
     // constant function: return maximum possible investment per person
     function maxInvestment() public view returns(uint256) {
-        if (totalSupply.mul(maxStake)/100 > maxSimpleInvestment) {
-            return totalSupply.mul(maxStake)/100;
-        } else {
-            return maxSimpleInvestment;
-        }
+        return totalSupply.mul(maxStake)/100;
     }
 
 }
