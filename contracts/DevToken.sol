@@ -20,7 +20,7 @@ library SafeMath {
         return a - b;
     }
     // Safe addition
-    function add(uint256 a, uint256 b) internal pure returns (uint156) {
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
         require(c>=a && c>=b);
         return c;
