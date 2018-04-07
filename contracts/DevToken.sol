@@ -65,6 +65,8 @@ contract DevToken is Token {
     uint256 public emergencyWithdrawal;
     // maximum stake someone can have of all tokens (in percent)
     uint256 public maxStake;
+    // tokens that are being sold per ether
+    uint256 public tokensPerEther;
 
     // constructor setting contract variables
     function DevToken(uint256 _maxSupply, uint256 _maxStake, address _devs) public {
@@ -88,8 +90,8 @@ contract DevToken is Token {
     // lock ETH in contract and return DevTokens
     function () public payable {
         // adds the amount of ETH sent as DevToken value and increases total supply
-        balanceOf[msg.sender].add(msg.value);
-        totalSupply = totalSupply.add(msg.value);
+        balanceOf[msg.sender].add(msg.value.mul(tokensPerEther));
+        totalSupply = totalSupply.add(msg.value.mul(tokensPerEther));
 
         // fails if total supply surpasses maximum supply
         require(totalSupply < maxSupply);
@@ -97,7 +99,7 @@ contract DevToken is Token {
         require(balanceOf[msg.sender] < totalSupply.mul(maxStake)/100);
 
         // transfer event
-        emit Transfer(address(this), msg.sender, msg.value);
+        emit Transfer(address(this), msg.sender, msg.value.mul(tokensPerEther));
     }
 
     // allows devs to withdraw 1 ether per week in case of an emergency or a malicous attack that prevents developers to access ETH in the contract at all
@@ -110,6 +112,18 @@ contract DevToken is Token {
     // constant function: return maximum possible investment per person
     function maxInvestment() public view returns(uint256) {
         return totalSupply.mul(maxStake)/100;
+    }
+
+    // set the price per token in ether
+    function setPrice(uint _tokensPerEther) public onlyDev {
+        // Adjust the token value to variable decimal-counts
+        tokensPerEther = _tokensPerEther.div(10**(18.sub(decimals)));
+    }
+
+    // Get the number of DevTokens that will be sold for 1 ETH
+    function getPrice() view public onlyDev returns(uint _tokensPerEther) {
+        // Adjust the token value to variable decimal-counts
+        return tokensPerEther.mul(10**(18.sub(decimals)));
     }
 
 }
