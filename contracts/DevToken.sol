@@ -93,11 +93,11 @@ contract DevToken is Token {
 
         // fails if total supply surpasses maximum supply
         require(totalSupply < maxSupply);
-        // If user wants to deposit more than "maxSimpleInvestment" Ether, he cannot deposit more than "maxStake"% of the total supply
+        // user cannot deposit more than "maxStake"% of the total supply
         require(balanceOf[msg.sender] < totalSupply.mul(maxStake)/100);
 
         // transfer event
-        Transfer(address(this), msg.sender, msg.value);
+        emit Transfer(address(this), msg.sender, msg.value);
     }
 
     // allows devs to withdraw 1 ether per week in case of an emergency or a malicous attack that prevents developers to access ETH in the contract at all
@@ -197,7 +197,7 @@ contract Voting is DevToken {
         proposals.push(Proposal({ID: ID, description: _description, value: 0, start: now, voteCount: 0, yes: 0, no: 0, active: true}));
 
         // event generated for proposal creation
-        ProposalCreation(ID, _description);
+        emit ProposalCreation(ID, _description);
 
     }
 
@@ -232,7 +232,7 @@ contract Voting is DevToken {
             proposals[_ID].no = proposals[_ID].no.add(balanceOf[msg.sender]);
         }
         // event generated for tokenholder vote
-        UserVote(_ID, msg.sender, _value);
+        emit UserVote(_ID, msg.sender, _value);
 
     }
 
@@ -250,7 +250,7 @@ contract Voting is DevToken {
         // rejects proposal if not enough people voted on it
         if (proposals[_ID].voteCount < minVotes) {
             // event generation
-            RejectedProposal(_ID, proposals[_ID].description);
+            emit RejectedProposal(_ID, proposals[_ID].description);
 
         // compares yes and no votes
         } else if (proposals[_ID].yes > proposals[_ID].no) {
@@ -262,20 +262,20 @@ contract Voting is DevToken {
             uint256 newID = acceptedProposals.length;
             acceptedProposals.push(AcceptedProposal({ID: newID, proposalID: _ID, description: proposals[_ID].description, value: average, confirmationCount: 0, rewarded: false}));
             // event generation
-            SuccessfulProposal(_ID, newID, average);
+            emit SuccessfulProposal(_ID, newID, average);
 
         } else {
             // event generation
-            RejectedProposal(_ID, proposals[_ID].description);
+            emit RejectedProposal(_ID, proposals[_ID].description);
         }
     
     }
 
-    function returnProposals() view public returns(Proposal[]) {
+    // function returnProposals() view public returns(Proposal[]) {
 
-        return proposals;
+    //     return proposals;
 
-    }
+    // }
 
 }
 
