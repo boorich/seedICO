@@ -65,16 +65,13 @@ contract DevToken is Token {
     uint256 public emergencyWithdrawal;
     // maximum stake someone can have of all tokens (in percent)
     uint256 public maxStake;
-    // the maximum amount someone can deposit before the stake percentage starts to count
-    uint256 public maxSimpleInvestment;
 
     // constructor setting contract variables
-    function DevToken(uint256 _maxSupply, uint256 _maxStake, uint256 _maxSimpleInvestment, address _devs) public {
+    function DevToken(uint256 _maxSupply, uint256 _maxStake, address _devs) public {
         devs = msg.sender;
         emergencyWithdrawal = now;
         maxSupply = _maxSupply;
         maxStake = _maxStake;
-        maxSimpleInvestment = _maxSimpleInvestment;
     }
 
     // modifiers: only allows Owner/Pool/Contract to call certain functions
@@ -96,11 +93,9 @@ contract DevToken is Token {
 
         // fails if total supply surpasses maximum supply
         require(totalSupply < maxSupply);
-        // up to 5 Ethers can be deposited
-        if (balanceOf[msg.sender] > maxSimpleInvestment) {
-            // If user wants to deposit more than "maxSimpleInvestment" Ether, he cannot deposit more than "maxStake"% of the total supply
-            require(balanceOf[msg.sender] < totalSupply.mul(maxStake)/100);
-        }
+        // If user wants to deposit more than "maxSimpleInvestment" Ether, he cannot deposit more than "maxStake"% of the total supply
+        require(balanceOf[msg.sender] < totalSupply.mul(maxStake)/100);
+
         // transfer event
         Transfer(address(this), msg.sender, msg.value);
     }
@@ -114,11 +109,7 @@ contract DevToken is Token {
     }
     // constant function: return maximum possible investment per person
     function maxInvestment() public view returns(uint256) {
-        if (totalSupply.mul(maxStake)/100 > maxSimpleInvestment) {
-            return totalSupply.mul(maxStake)/100;
-        } else {
-            return maxSimpleInvestment;
-        }
+        return totalSupply.mul(maxStake)/100;
     }
 
 }
