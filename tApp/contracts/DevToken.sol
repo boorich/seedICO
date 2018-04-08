@@ -286,6 +286,8 @@ contract DevToken is DevRev {
         string _name, string _symbol,
         // arguments Funding
         uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances,
+        // arguments OwnerAllowance
+        uint256 _allowanceInterval, uint256 _allowanceValue,
         // arguments TaskVoting
         uint256 _proposalDuration_Task, uint256 _minVotes_Task
         ) public {
@@ -296,17 +298,21 @@ contract DevToken is DevRev {
         decimals = 18;
         // constructor Funding
         owner = msg.sender;
-        allowanceTimeCounter = now;
         maxSupply = _maxSupply;
-        // Adjust the token value to variable decimal-counts
         tokensPerEther = _tokensPerEther;
         require(_owners.length == _balances.length);
         for (uint256 i = 0; i < _owners.length; i++) {
             balanceOf[_owners[i]] = balanceOf[_owners[i]].add(_balances[i]);
             totalSupply = totalSupply.add(_balances[i]);
+            emit Transfer(address(this), _owners[i], _balances[i]);
         }
         require(_maxSupply >= totalSupply);
         maxStake = _maxStake;
+        // constructor OwnerAllowance
+        allowanceTimeCounter = now;
+        allowanceInterval = _allowanceInterval;
+        allowanceValue = _allowanceValue;
+        allowanceBalance = _allowanceValue;
         // constructor TaskVoting
         proposalDuration_Task = _proposalDuration_Task;
         minVotes_Task = _minVotes_Task;
