@@ -44,13 +44,16 @@ contract Token is Owned {
     mapping (address => mapping (address => uint256)) public allowance;
     // The total supply of the token
     uint256 public totalSupply;
+    // Some variables for nice wallet integration
+    string public name;         // name of token
+    string public symbol;       // symbol of token
+    uint8 public decimals;      // decimals of token
 
     // Initialize contract without initial supply
     function Token(string _name, string _symbol, uint8 _decimals) public {
-        // Some variables for nice wallet integration
-        string public name = _name;         // name of token
-        string public symbol = _symbol;     // symbol of token
-        uint8 public decimals = _decimals;  // decimals of token
+        name = _name;
+        symbol = _symbol;
+        decimals = _decimals;
     }
 
     // Send coins
