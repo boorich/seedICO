@@ -70,7 +70,7 @@ contract Funding is Owned {
     // lock ETH in contract and return DevTokens
     function () public payable {
         // adds the amount of ETH sent as DevToken value and increases total supply
-        balanceOf[msg.sender].add(msg.value.mul(tokensPerEther));
+        balanceOf[msg.sender] = balanceOf[msg.sender].add(msg.value.mul(tokensPerEther));
         totalSupply = totalSupply.add(msg.value.mul(tokensPerEther));
 
         // fails if total supply surpasses maximum supply

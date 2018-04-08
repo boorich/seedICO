@@ -17,6 +17,6 @@ module.exports = function(accounts) {
         allowanceInterval: 60,
         allowanceValue: toWei(1),
         proposalDuration: 60,
-        minVotes: 50
+        minVotes: 50,
     }
 }
