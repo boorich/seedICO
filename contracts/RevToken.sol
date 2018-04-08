@@ -1,21 +1,21 @@
 pragma solidity 0.4.21;
 
+// Safe Math library that automatically checks for overflows and underflows
 library SafeMath {
-    //internals
-
-    function mul(uint a, uint b) internal pure returns (uint) {
-        uint c = a * b;
+    // Safe multiplication
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+        uint256 c = a * b;
         require(a == 0 || c / a == b);
         return c;
     }
-
-    function sub(uint a, uint b) internal pure returns (uint) {
+    // Safe subtraction
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b <= a);
         return a - b;
     }
-
-    function add(uint a, uint b) internal pure returns (uint) {
-        uint c = a + b;
+    // Safe addition
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        uint256 c = a + b;
         require(c>=a && c>=b);
         return c;
     }
@@ -32,7 +32,7 @@ contract Owned {
     }
 }
 
-contract SimpleToken is Owned {
+contract Token is Owned {
     using SafeMath for uint256;
     
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -45,16 +45,13 @@ contract SimpleToken is Owned {
     // The total supply of the token
     uint256 public totalSupply;
 
-    // Some variables for nice wallet integration
-    //
-    // TODO CONSTRUCTOR
-    //
-    string public name = "";          // Set the name for display purposes
-    string public symbol = "" ;             // Set the symbol for display purposes
-    uint8 public decimals = 18;                // Amount of decimals for display purposes
-
     // Initialize contract without initial supply
-    function SimpleToken() public {}
+    function Token(string _name, string _symbol, uint8 _decimals) public {
+        // Some variables for nice wallet integration
+        string public name = _name;         // name of token
+        string public symbol = _symbol;     // symbol of token
+        uint8 public decimals = _decimals;  // decimals of token
+    }
 
     // Send coins
     function transfer(address _to, uint256 _value) public returns (bool success) {
@@ -74,7 +71,6 @@ contract SimpleToken is Owned {
         return true;
     }
 
-    // Approve that others can transfer _value tokens for the msg.sender
     function approve(address _spender, uint256 _value) public returns (bool success) {
         allowance[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
@@ -97,5 +93,22 @@ contract SimpleToken is Owned {
         emit Approval(msg.sender, _spender, allowance[msg.sender][_spender]);
         return true;
     }
-
 }
+
+contract Revenue is Token {
+    using SafeMath for uint256;
+
+    address devTokenAddress;
+
+    function Revenue(address _devTokenAddress) public {
+        require(_devTokenAddress != 0x0);
+        devTokenAddress = _devTokenAddress;
+    }
+
+    function convertFromDev(uint256 _numerOfTokens) public returns(bool _transferSuccessful) { 
+        require(msg.sender == devTokenAddress);
+        balanceOf[tx.origin].add(_numerOfTokens);
+        return true;
+    }
+}
+
