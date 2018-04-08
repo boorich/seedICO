@@ -117,7 +117,7 @@ contract OwnerAllowance is Funding {
     }
 }
 
-interface Voting_X is Owned {
+contract Voting_X is Owned {
     // allows one proposal at a time per person
     mapping(address => uint256) lastProposal_X;
     // duration of voting on a proposal
