@@ -84,18 +84,17 @@ contract Funding is Owned {
 
     // constant function: return maximum possible investment per person
     function maxInvestment() public view returns(uint256) {
-        return (totalSupply.mul(maxStake)/100).sub(balanceOf[msg.sender]);
+        return totalSupply.mul(maxStake)/100;
     }
 
 
     // Get the number of DevTokens that will be sold for 1 ETH
-    function getPrice() view public returns(uint _tokensPerEther) {
+    function getTokenPrice() view public returns(uint _tokensPerEther) {
         // Adjust the token value to variable decimal-counts
         return tokensPerEther.mul(10**(18-uint256(decimals)));
     }
 
 }
-
 
 contract OwnerAllowance is Funding {
     // time since last use of allowance
@@ -106,6 +105,7 @@ contract OwnerAllowance is Funding {
     uint256 public allowanceValue;
     // current allowance balance
     uint256 public allowanceBalance;
+
     // allows owner to withdraw ether in an interval
     function allowanceWithdrawal(uint256 _value) public onlyOwner {
         if (now.sub(allowanceTimeCounter) > allowanceInterval) {
@@ -117,41 +117,32 @@ contract OwnerAllowance is Funding {
     }
 }
 
-
-
-
-
-// voting implementation of DevToken contract
-contract Voting is OwnerAllowance {
-    // limits the amount of proposals that can be made at time (optimum 1 proposal at a time, depends on proposal Durations of )
-    mapping(address => uint256) lastProposal;
-}
-
-contract TaskVoting is Voting {
+interface Voting_X is Owned {
+    // allows one proposal at a time per person
+    mapping(address => uint256) lastProposal_X;
     // duration of voting on a proposal
-    uint256 proposalDuration;
+    uint256 proposalDuration_X;
     // percentage of minimum votes for proposal to get accepted
-    uint256 minVotes;
-
+    uint256 minVotes_X;
+    // constructor
+    function Voting_X(uint256 _proposalDuration_X, uint256 _minVotes_X) public {}
     // Events
     // creation event
-    event ProposalCreation(uint256 indexed ID, string indexed description);
+    event ProposalCreation_X(uint256 indexed ID, string indexed description);
     // vote event
-    event UserVote(uint256 indexed ID, address indexed user, bool indexed value);
+    event UserVote_X(uint256 indexed ID, address indexed user, bool indexed value);
     // successful proposal event
-    event SuccessfulProposal(uint256 indexed ID, string indexed description, uint256 indexed value);
+    event SuccessfulProposal_X(uint256 indexed ID, string indexed description, uint256 indexed value);
     // rejected proposal event
-    event RejectedProposal(uint256 indexed ID, string indexed description, string indexed reason);
-
-    struct Proposal {
+    event RejectedProposal_X(uint256 indexed ID, string indexed description, string indexed reason);
+    // proposal structure
+    struct Proposal_X {
         // ID of proposal
         uint256 ID;
         // short name
         string name;
         // description of proposal
         string description;
-        // amount of ETH-reward for development tasks
-        uint256 value;
         // timestamp when poll started
         uint256 start;
         // collects votes
@@ -163,29 +154,68 @@ contract TaskVoting is Voting {
         bool active;
         // bool if proposal was accepted
         bool accepted;
-        // bool if proposal was rewarded
+    }
+    // array of polls
+    Proposal_X[] public proposals_X;
+    // propose a new development task
+    // appends proposal struct to array
+    // emits ProposalCreation_X event
+    function propose_X(string _name, string _description) public onlyTokenHolder {}
+    // vote on a development task
+    // emits UserVote_X event
+    function vote(uint256 _ID, bool _vote) public onlyTokenHolder {}
+    // end voting for a development task
+    // emits SuccessfulProposal_X or RejectedProposal_X Event
+    function end(uint256 _ID) public onlyTokenHolder {}
+
+}
+
+// task voting implementation
+contract Voting_Task is OwnerAllowance {
+
+    mapping(address => uint256) lastProposal_Task;
+    uint256 proposalDuration_Task;
+    uint256 minVotes_Task;
+
+    event ProposalCreation_Task(uint256 indexed ID, string indexed description);
+    event UserVote_Task(uint256 indexed ID, address indexed user, bool indexed value);
+    event SuccessfulProposal_Task(uint256 indexed ID, string indexed description, uint256 indexed value);
+    event RejectedProposal_Task(uint256 indexed ID, string indexed description, string indexed reason);
+
+    struct Proposal_Task {
+        uint256 ID;
+        string name;
+        string description;
+        // (optional) amount of ETH-reward for development tasks
+        uint256 value;
+        uint256 start;
+        uint256 yes;
+        uint256 no;
+        mapping(address => bool) voted;
+        bool active;
+        bool accepted;
+        // (optional) bool if proposal was rewarded
         bool rewarded;
     }
 
     // array of polls
-    Proposal[] public proposals;
+    Proposal_Task[] public proposals_Task;
 
-    // propose a new development task
     function propose(string _name, string _description, uint256 _value) public onlyTokenHolder {
 
         require(_value > address(this).balance);
         // allows one proposal per week and resets value after successful proposal
-        require(now.sub(lastProposal[msg.sender]) > proposalDuration);
-        lastProposal[msg.sender] = now;
+        require(now.sub(lastProposal_Task[msg.sender]) > proposalDuration_Task);
+        lastProposal_Task[msg.sender] = now;
 
         // saves ID of proposal which is equal to the array index
-        uint256 ID = proposals.length;
+        uint256 ID = proposals_Task.length;
 
         // initializes new proposal as a struct and pushes it into the proposal array
-        proposals.push(Proposal({ID: ID, name: _name, description: _description, value: _value, start: now, yes: 0, no: 0, active: true, accepted: false, rewarded: false}));
+        proposals_Task.push(Proposal_Task({ID: ID, name: _name, description: _description, value: _value, start: now, yes: 0, no: 0, active: true, accepted: false, rewarded: false}));
 
         // event generated for proposal creation
-        emit ProposalCreation(ID, _description);
+        emit ProposalCreation_Task(ID, _description);
 
     }
 
@@ -193,28 +223,28 @@ contract TaskVoting is Voting {
     function vote(uint256 _ID, bool _vote) public onlyTokenHolder {
 
         // proposal has to be active
-        require(proposals[_ID].active);
+        require(proposals_Task[_ID].active);
 
         // proposal has to be active less than one week
-        if (now.sub(proposals[_ID].start) >= proposalDuration) {
+        if (now.sub(proposals_Task[_ID].start) >= proposalDuration_Task) {
             end(_ID);
         }
 
         // checks if tokenholder has already voted
-        require(!proposals[_ID].voted[msg.sender]);
+        require(!proposals_Task[_ID].voted[msg.sender]);
         // registers vote
-        proposals[_ID].voted[msg.sender] = true;
+        proposals_Task[_ID].voted[msg.sender] = true;
 
         // if the value is 0 it's considered no
         if (_vote) {
             // registers the balance of msg.sender as a yes vote
-            proposals[_ID].yes = proposals[_ID].yes.add(balanceOf[msg.sender]);
+            proposals_Task[_ID].yes = proposals_Task[_ID].yes.add(balanceOf[msg.sender]);
         } else {
             // registers the balance of msg.sender as a no vote
-            proposals[_ID].no = proposals[_ID].no.add(balanceOf[msg.sender]);
+            proposals_Task[_ID].no = proposals_Task[_ID].no.add(balanceOf[msg.sender]);
         }
         // event generated for tokenholder vote
-        emit UserVote(_ID, msg.sender, _vote);
+        emit UserVote_Task(_ID, msg.sender, _vote);
 
     }
 
@@ -223,72 +253,72 @@ contract TaskVoting is Voting {
     function end(uint256 _ID) public onlyTokenHolder {
 
         // requires proposal to be running for a week
-        require(now.sub(proposals[_ID].start) >= proposalDuration);
+        require(now.sub(proposals_Task[_ID].start) >= proposalDuration_Task);
 
         // requires proposal to be active
-        require(proposals[_ID].active);
-        proposals[_ID].active = false;
+        require(proposals_Task[_ID].active);
+        proposals_Task[_ID].active = false;
 
         // rejects proposal if not enough people voted on it
-        if (proposals[_ID].no.add(proposals[_ID].yes) < (minVotes.mul(totalSupply))/100) {
+        if (proposals_Task[_ID].no.add(proposals_Task[_ID].yes) < (minVotes_Task.mul(totalSupply))/100) {
             // event generation
-            emit RejectedProposal(_ID, proposals[_ID].description, "Participation too low");
+            emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Participation too low");
 
         // compares yes and no votes
-        } else if (proposals[_ID].yes > proposals[_ID].no) {
-            proposals[_ID].accepted = true;
+        } else if (proposals_Task[_ID].yes > proposals_Task[_ID].no) {
+            proposals_Task[_ID].accepted = true;
             // event generation
-            emit SuccessfulProposal(_ID, proposals[_ID].description, proposals[_ID].value);
+            emit SuccessfulProposal_Task(_ID, proposals_Task[_ID].description, proposals_Task[_ID].value);
 
         } else {
             // event generation
-            emit RejectedProposal(_ID, proposals[_ID].description, "Proposal rejected by vote");
+            emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Proposal rejected by vote");
         }
     
     }
 
     function getProposalLength() public view returns(uint256 length) {
-        return proposals.length;
+        return proposals_Task.length;
     }
 
     function getProposalName(uint256 _ID) public view returns(string name) {
-        return proposals[_ID].name;
+        return proposals_Task[_ID].name;
     }
 
     function getProposalDescription(uint256 _ID) public view returns(string description) {
-        return proposals[_ID].description;
+        return proposals_Task[_ID].description;
     }
 
     function getProposalValue(uint256 _ID) public view returns(uint256 value) {
-        return proposals[_ID].value;
+        return proposals_Task[_ID].value;
     }
 
     function getProposalStart(uint256 _ID) public view returns(uint256 start) {
-        return proposals[_ID].start;
+        return proposals_Task[_ID].start;
     }
 
     function getProposalYes(uint256 _ID) public view returns(uint256 yes) {
-        return proposals[_ID].yes;
+        return proposals_Task[_ID].yes;
     }
 
     function getProposalNo(uint256 _ID) public view returns(uint256 no) {
-        return proposals[_ID].no;
+        return proposals_Task[_ID].no;
     }
 
     function getProposalActive(uint256 _ID) public view returns(bool active) {
-        return proposals[_ID].active;
+        return proposals_Task[_ID].active;
     }
 
     function getProposalAccepted(uint256 _ID) public view returns(bool accepted) {
-        return proposals[_ID].accepted;
+        return proposals_Task[_ID].accepted;
     }
 
     function getProposalRewarded(uint256 _ID) public view returns(bool rewarded) {
-        return proposals[_ID].rewarded;
+        return proposals_Task[_ID].rewarded;
     }
 }
 
-contract DevRev is TaskVoting {
+contract DevRev is Voting_Task {
     // bool to see if RevToken was set
     bool private set = false;
     address public RevTokenAddress;
