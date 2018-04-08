@@ -76,7 +76,7 @@ contract Funding is Owned {
         // fails if total supply surpasses maximum supply
         require(totalSupply <= maxSupply);
         // user cannot deposit more than "maxStake"% of the total supply
-        require(balanceOf[msg.sender] < totalSupply.mul(maxStake)/100);
+        require(balanceOf[msg.sender] <= maxSupply.mul(maxStake)/100);
 
         // transfer event
         emit Transfer(address(this), msg.sender, msg.value.mul(tokensPerEther));
@@ -86,14 +86,6 @@ contract Funding is Owned {
     function maxInvestment() public view returns(uint256) {
         return totalSupply.mul(maxStake)/100;
     }
-
-
-    // Get the number of DevTokens that will be sold for 1 ETH
-    function getTokenPrice() view public returns(uint _tokensPerEther) {
-        // Adjust the token value to variable decimal-counts
-        return tokensPerEther;
-    }
-
 }
 
 contract OwnerAllowance is Funding {
