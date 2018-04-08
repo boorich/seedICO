@@ -13,6 +13,17 @@ contract("DevToken", accounts => {
         assert.equal(owner, accounts[0], "wrong owner");
     });
 
+    // it("Funding", async() => {
+    //     // try {
+    //     //     await devInstance.sendTransaction({from: accounts[0], value: 20000000000000000000});
+    //     //     assert.fail("should have failed");
+    //     // } catch(error) {
+    //     //     assertVMError(error);
+    //     // }
+    //     await devInstance.sendTransaction({from: accounts[0], value: 10000000000000000000});
+    //     var totalSupply = await devInstance.totalSupply();
+    //     assert.equal(totalSupply.valueOf(), 25000000000000000000, "should have totalSupply of 25 DVT");
+    // });
     
 });
 

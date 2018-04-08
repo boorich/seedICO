@@ -1,8 +1,5 @@
 var Migrations = artifacts.require("./Migrations.sol");
 var DevToken = artifacts.require("./DevToken.sol");
-function decimals(x) {
-    return x*10**18;
-}
 
 module.exports = function(deployer, network, accounts) {
     var args = require("../constructor.js")(accounts);
