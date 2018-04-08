@@ -91,7 +91,7 @@ contract Funding is Owned {
     // Get the number of DevTokens that will be sold for 1 ETH
     function getTokenPrice() view public returns(uint _tokensPerEther) {
         // Adjust the token value to variable decimal-counts
-        return tokensPerEther.mul(10**(18-uint256(decimals)));
+        return tokensPerEther;
     }
 
 }
@@ -291,7 +291,7 @@ contract DevRev is Voting_Task {
 contract DevToken is DevRev {
     function DevToken(
         // arguments Token
-        string _name, string _symbol, uint8 _decimals,
+        string _name, string _symbol,
         // arguments Funding
         uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances,
         // arguments TaskVoting
@@ -301,8 +301,7 @@ contract DevToken is DevRev {
         // constructor Token
         name = _name;
         symbol = _symbol;
-        require(_decimals <= 18);
-        decimals = _decimals;
+        decimals = 18;
         // constructor Funding
         owner = msg.sender;
         allowanceTimeCounter = now;
