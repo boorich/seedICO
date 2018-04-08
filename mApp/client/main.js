@@ -6,17 +6,50 @@ import './main.html';
 import './js/web3.min.js';
 
 var self = this;
+var selfT = Template;
 Template.hello.onCreated(function helloOnCreated() {
   // counter starts at 0
   this.counter = new ReactiveVar(0);
 });
 
 Template.info.onCreated(function infoOnCreated() {
-  // counter starts at 0
-
   this.issues = new ReactiveVar("");
-  self = this;
+  var iss = this.issues;
+  function httpAnswer() {
+    var responseObj = JSON.parse(this.responseText);
+  	iss.set(responseObj);
+  }
+
+  var request = new XMLHttpRequest();
+  request.onload = httpAnswer;
+  request.open('get', 'https://api.github.com/repos/empea-careercriminal/seedICO', true)
+  request.send();
 });
+
+Template.gitcoins.onCreated(function gitcoinsOnCreated() {
+  this.gitcoin = new ReactiveVar("");
+
+  var gits = this.gitcoin;
+
+  function httpAnswer() {
+    var responseObj = this.responseText;
+  	gits.set(responseObj);
+    alert(responseObj);
+  }
+
+  var request = new XMLHttpRequest();
+
+  request.onload = httpAnswer;
+  request.open('get', 'https://gitcoin.co/api/v0.1/bounties/0', true)
+  request.send();
+
+});
+
+
+
+
+
+
 
 Template.hello.helpers({
   counter() {
@@ -24,6 +57,22 @@ Template.hello.helpers({
   },
 });
 
+Template.info.helpers({
+  issues() {
+    return Template.instance().issues.get();
+  },
+});
+Template.hello.events({
+  'click button'(event, instance) {
+
+    selfT.instance().counter.set(instance.counter.get() + 1);
+  },
+});
+Template.gitcoins.helpers({
+  gitcoin() {
+    return Template.instance().gitcoin.get();
+  },
+});
 
 
 
@@ -34,27 +83,3 @@ web3.eth.defaultAccount = web3.eth.accounts[0];
 //alert(web3.fromWei(web3.eth.getBalance("0xb90b504f4c6bd7535a0bcd200b1a7c17d1cd4f64")), "ether");
 
 //Github API
-
-function printRepoCount() {
-  var responseObj = JSON.parse(this.responseText);
-	self.issues.set("asd");
-	alert(self.issues.get());
-
-}
-
-
-var request = new XMLHttpRequest();
-request.onload = printRepoCount;
-request.open('get', 'https://api.github.com/repos/empea-careercriminal/seedICO', true)
-request.send()
-
-Template.hello.events({
-  'click button'(event, instance) {
-    // increment the counter when button is clicked
-    instance.counter.set(instance.counter.get() + 1);
-  },
-});
-
-
-
-
