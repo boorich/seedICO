@@ -26,30 +26,6 @@ Template.info.onCreated(function infoOnCreated() {
   request.send();
 });
 
-Template.gitcoins.onCreated(function gitcoinsOnCreated() {
-  this.gitcoin = new ReactiveVar("");
-
-  var gits = this.gitcoin;
-
-  function httpAnswer() {
-    var responseObj = this.responseText;
-  	gits.set(responseObj);
-    alert(responseObj);
-  }
-
-  var request = new XMLHttpRequest();
-
-  request.onload = httpAnswer;
-  request.open('get', 'https://gitcoin.co/api/v0.1/bounties/0', true)
-  request.send();
-
-});
-
-
-
-
-
-
 
 Template.hello.helpers({
   counter() {
@@ -68,13 +44,6 @@ Template.hello.events({
     selfT.instance().counter.set(instance.counter.get() + 1);
   },
 });
-Template.gitcoins.helpers({
-  gitcoin() {
-    return Template.instance().gitcoin.get();
-  },
-});
-
-
 
 //Ether Stuff
 var web3_provider = 'http://localhost:8545';
