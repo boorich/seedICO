@@ -238,8 +238,25 @@ contract TaskVoting is Voting {
 
 }
 
+contract DevRev is TaskVoting {
+    // bool to see if RevToken was set
+    bool private set = false;
+    address public RevTokenContract;
+
+    function setRevContract(address _contractAddress) public onlyOwner {
+        require(!set);
+        set = true;
+        RevTokenContract = _contractAddress;
+    }
+
+    function swap(uint256 _tokenAmount) public onlyTokenHolder {
+        //
+    }
+
+}
+
 // DevRevToken combines DevToken and RevToken into one token
-contract DevToken is TaskVoting {
+contract DevToken is DevRev {
     function DevToken(
         // arguments Token
         string _name, string _symbol, uint8 _decimals, 
