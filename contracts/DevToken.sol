@@ -274,7 +274,7 @@ contract Voting_Task is OwnerAllowance {
             // event generation
             emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Proposal rejected by vote");
         }
-    
+
     }
 
     function getProposalLength() public view returns(uint256 length) {
@@ -344,9 +344,9 @@ contract DevRev is Voting_Task {
 contract DevToken is DevRev {
     function DevToken(
         // arguments Token
-        string _name, string _symbol, uint8 _decimals, 
+        string _name, string _symbol, uint8 _decimals,
         // arguments Funding
-        uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances, 
+        uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances,
         // arguments TaskVoting
         uint256 _proposalDuration, uint256 _minVotes
         ) public {
@@ -361,13 +361,13 @@ contract DevToken is DevRev {
         allowanceTimeCounter = now;
         maxSupply = _maxSupply;
         // Adjust the token value to variable decimal-counts
-        tokensPerEther = _tokensPerEther/(10**(18 - uint256(decimals)));
+        tokensPerEther = _tokensPerEther;
         require(_owners.length == _balances.length);
         for (uint256 i = 0; i < _owners.length; i++) {
-            balanceOf[_owners[i]] = tokensPerEther.mul(balanceOf[_owners[i]].add(_balances[i]));
-            totalSupply = totalSupply.add(tokensPerEther.mul(_balances[i]));
+            balanceOf[_owners[i]] = balanceOf[_owners[i]].add(_balances[i]);
+            totalSupply = totalSupply.add(_balances[i]);
         }
-        require(_maxStake >= totalSupply);
+        require(_maxSupply >= totalSupply);
         maxStake = _maxStake;
         // constructor TaskVoting
         proposalDuration_Task = _proposalDuration;
