@@ -358,7 +358,7 @@ contract DevToken is DevRev {
         decimals = _decimals;
         // constructor Funding
         owner = msg.sender;
-        emergencyWithdrawal = now;
+        allowanceTimeCounter = now;
         maxSupply = _maxSupply;
         // Adjust the token value to variable decimal-counts
         tokensPerEther = _tokensPerEther/(10**(18 - uint256(decimals)));
@@ -370,7 +370,7 @@ contract DevToken is DevRev {
         require(_maxStake >= totalSupply);
         maxStake = _maxStake;
         // constructor TaskVoting
-        proposalDuration = _proposalDuration;
-        minVotes = _minVotes;
+        proposalDuration_Task = _proposalDuration;
+        minVotes_Task = _minVotes;
     }
 }
