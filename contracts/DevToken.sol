@@ -117,59 +117,6 @@ contract OwnerAllowance is Funding {
     }
 }
 
-contract Voting_X is Owned {
-    // allows one proposal at a time per person
-    mapping(address => uint256) lastProposal_X;
-    // duration of voting on a proposal
-    uint256 proposalDuration_X;
-    // percentage of minimum votes for proposal to get accepted
-    uint256 minVotes_X;
-    // constructor
-    function Voting_X(uint256 _proposalDuration_X, uint256 _minVotes_X) public {}
-    // Events
-    // creation event
-    event ProposalCreation_X(uint256 indexed ID, string indexed description);
-    // vote event
-    event UserVote_X(uint256 indexed ID, address indexed user, bool indexed value);
-    // successful proposal event
-    event SuccessfulProposal_X(uint256 indexed ID, string indexed description, uint256 indexed value);
-    // rejected proposal event
-    event RejectedProposal_X(uint256 indexed ID, string indexed description, string indexed reason);
-    // proposal structure
-    struct Proposal_X {
-        // ID of proposal
-        uint256 ID;
-        // short name
-        string name;
-        // description of proposal
-        string description;
-        // timestamp when poll started
-        uint256 start;
-        // collects votes
-        uint256 yes;
-        uint256 no;
-        // mapping that saves if user voted
-        mapping(address => bool) voted;
-        // bool if poll is active
-        bool active;
-        // bool if proposal was accepted
-        bool accepted;
-    }
-    // array of polls
-    Proposal_X[] public proposals_X;
-    // propose a new development task
-    // appends proposal struct to array
-    // emits ProposalCreation_X event
-    function propose_X(string _name, string _description) public onlyTokenHolder {}
-    // vote on a development task
-    // emits UserVote_X event
-    function vote(uint256 _ID, bool _vote) public onlyTokenHolder {}
-    // end voting for a development task
-    // emits SuccessfulProposal_X or RejectedProposal_X Event
-    function end(uint256 _ID) public onlyTokenHolder {}
-
-}
-
 // task voting implementation
 contract Voting_Task is OwnerAllowance {
 
@@ -348,13 +295,13 @@ contract DevToken is DevRev {
         // arguments Funding
         uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances, 
         // arguments TaskVoting
-        uint256 _proposalDuration, uint256 _minVotes
+        uint256 _proposalDuration_Task, uint256 _minVotes_Task
         ) public {
 
         // constructor Token
         name = _name;
         symbol = _symbol;
-        require(decimals <= 18);
+        require(_decimals <= 18);
         decimals = _decimals;
         // constructor Funding
         owner = msg.sender;
@@ -367,10 +314,10 @@ contract DevToken is DevRev {
             balanceOf[_owners[i]] = tokensPerEther.mul(balanceOf[_owners[i]].add(_balances[i]));
             totalSupply = totalSupply.add(tokensPerEther.mul(_balances[i]));
         }
-        require(_maxStake >= totalSupply);
+        require(_maxSupply >= totalSupply);
         maxStake = _maxStake;
         // constructor TaskVoting
-        proposalDuration_Task = _proposalDuration;
-        minVotes_Task = _minVotes;
+        proposalDuration_Task = _proposalDuration_Task;
+        minVotes_Task = _minVotes_Task;
     }
 }
