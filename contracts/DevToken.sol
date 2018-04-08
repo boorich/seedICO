@@ -43,30 +43,29 @@ contract Token {
     uint8 public decimals;       // decimals of token
 }
 
-// DevToken functions which are active during development phase
-contract Funding is Token {
-
+contract Owned is Token {
     // address of the developers
     address public owner;
-    // maximum supply of the token
-    uint256 public maxSupply;
-    // time since the last emergency withdrawal
-    uint256 public emergencyWithdrawal;
-    // maximum stake someone can have of all tokens (in percent)
-    uint256 public maxStake;
-    // tokens that are being sold per ether
-    uint256 public tokensPerEther;
-
     // modifiers: only allows Owner/Pool/Contract to call certain functions
     modifier onlyOwner {
         require(msg.sender == owner);
         _;
     }
     modifier onlyTokenHolder {
-        require(balanceOf[msg.sender] > 0 || msg.sender == address(this));
-        // require(!banned[msg.sender]);
+        require(balanceOf[msg.sender] > 0);
         _;
     }
+}
+
+// DevToken functions which are active during development phase
+contract Funding is Owned {
+
+    // maximum supply of the token
+    uint256 public maxSupply;
+    // maximum stake someone can have of all tokens (in percent)
+    uint256 public maxStake;
+    // tokens that are being sold per ether
+    uint256 public tokensPerEther;
 
     // lock ETH in contract and return DevTokens
     function () public payable {
@@ -83,13 +82,6 @@ contract Funding is Token {
         emit Transfer(address(this), msg.sender, msg.value.mul(tokensPerEther));
     }
 
-    // allows owner to withdraw 1 ether per week in case of an emergency or a malicous attack that prevents developers to access ETH in the contract at all
-    function emergencyWithdraw() public onlyOwner {
-        if (now.sub(emergencyWithdrawal) > 7 days) {
-            emergencyWithdrawal = now;
-            owner.transfer(1 ether);
-        }
-    }
     // constant function: return maximum possible investment per person
     function maxInvestment() public view returns(uint256) {
         return (totalSupply.mul(maxStake)/100).sub(balanceOf[msg.sender]);
@@ -103,8 +95,34 @@ contract Funding is Token {
     }
 
 }
+
+
+contract OwnerAllowance is Funding {
+    // time since last use of allowance
+    uint256 public allowanceTimeCounter;
+    // interval how often allowance is reset
+    uint256 public allowanceInterval;
+    // allowance amount per interval
+    uint256 public allowanceValue;
+    // current allowance balance
+    uint256 public allowanceBalance;
+    // allows owner to withdraw ether in an interval
+    function allowanceWithdrawal(uint256 _value) public onlyOwner {
+        if (now.sub(allowanceTimeCounter) > allowanceInterval) {
+            allowanceBalance = allowanceValue;
+            allowanceTimeCounter = now;
+        }
+        allowanceBalance = allowanceBalance.sub(_value);
+        owner.transfer(_value);
+    }
+}
+
+
+
+
+
 // voting implementation of DevToken contract
-contract Voting is Funding {
+contract Voting is OwnerAllowance {
     // limits the amount of proposals that can be made at time (optimum 1 proposal at a time, depends on proposal Durations of )
     mapping(address => uint256) lastProposal;
 }
@@ -229,43 +247,43 @@ contract TaskVoting is Voting {
     
     }
 
-    function returnProposalLength() public view returns(uint256 length) {
+    function getProposalLength() public view returns(uint256 length) {
         return proposals.length;
     }
 
-    function returnProposalName(uint256 _ID) public view returns(string name) {
+    function getProposalName(uint256 _ID) public view returns(string name) {
         return proposals[_ID].name;
     }
 
-    function returnProposalDescription(uint256 _ID) public view returns(string description) {
+    function getProposalDescription(uint256 _ID) public view returns(string description) {
         return proposals[_ID].description;
     }
 
-    function returnProposalValue(uint256 _ID) public view returns(uint256 value) {
+    function getProposalValue(uint256 _ID) public view returns(uint256 value) {
         return proposals[_ID].value;
     }
 
-    function returnProposalStart(uint256 _ID) public view returns(uint256 start) {
+    function getProposalStart(uint256 _ID) public view returns(uint256 start) {
         return proposals[_ID].start;
     }
 
-    function returnProposalYes(uint256 _ID) public view returns(uint256 yes) {
+    function getProposalYes(uint256 _ID) public view returns(uint256 yes) {
         return proposals[_ID].yes;
     }
 
-    function returnProposalNo(uint256 _ID) public view returns(uint256 no) {
+    function getProposalNo(uint256 _ID) public view returns(uint256 no) {
         return proposals[_ID].no;
     }
 
-    function returnProposalActive(uint256 _ID) public view returns(bool active) {
+    function getProposalActive(uint256 _ID) public view returns(bool active) {
         return proposals[_ID].active;
     }
 
-    function returnProposalAccepted(uint256 _ID) public view returns(bool accepted) {
+    function getProposalAccepted(uint256 _ID) public view returns(bool accepted) {
         return proposals[_ID].accepted;
     }
 
-    function returnProposalRewarded(uint256 _ID) public view returns(bool rewarded) {
+    function getProposalRewarded(uint256 _ID) public view returns(bool rewarded) {
         return proposals[_ID].rewarded;
     }
 }

@@ -24,6 +24,7 @@ library SafeMath {
 contract Owned {
     address public owner;
     address public enterprise = 0xDEB80077101d919b6ad1e004Cff36203A0F0CE60;
+
     modifier onlyOwner {
         require(msg.sender == owner);
         _;
@@ -113,9 +114,9 @@ contract DevRev is Token {
         balanceOf[_tokenHolder].add(_tokenAmount);
         uint256 fee = _tokenAmount.mul(5)/100;
         balanceOf[enterprise].add(fee);
-        totalSupply = totalSupply.add(_tokenAmount).add(_tokenAmount.mul(5)/100);
-        emit Transfer(DevTokenAddress, _tokenHolder, _tokenAmount);
-        emit Transfer(DevTokenAddress, enterprise, fee);
+        totalSupply = totalSupply.add(_tokenAmount).add(fee);
+        emit Transfer(address(this), _tokenHolder, _tokenAmount);
+        emit Transfer(address(this), enterprise, fee);
         return true;
     }
 }
