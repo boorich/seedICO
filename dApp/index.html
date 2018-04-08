@@ -52,31 +52,12 @@
 
                 let contract = web3.eth.contract(abi);
 
-                // Unlock account
-                console.log("Unlocking account");
-                var password = "";
-                try {
-                  web3.personal.unlockAccount(web3.eth.defaultAccount);
-                } catch(e) {
-                  console.log(e);
-                }
-
-
                 console.log("Deploying the contract, Account balance: " + web3.eth.getBalance(web3.eth.defaultAccount));
                 let deployedContract = contract.new({from: web3.eth.defaultAccount, gas: 3000000, data: code});
-
-                // Transaction successfull
-                console.log("Deployed at http://testnet.etherscan.io/tx/" + contract.transactionHash);
-
-                // JavaScript-style sleep: http://stackoverflow.com/questions/951021/what-is-the-javascript-version-of-sleep
-                function sleep(ms) {
-                  return new Promise(resolve => setTimeout(resolve, ms));
-                }
-
                 // wait for block to be mined
                 async function waitBlock() {
                   while (true) {
-                    let receipt = web3.eth.getTransactionReceipt(contract.transactionHash);
+                    let receipt = web3.eth.getTransactionReceipt(deployedContract.transactionHash);
                     if (receipt && receipt.contractAddress) {
                       console.log("Your contract has been deployed at " + receipt.contractAddress);
                       break;
@@ -85,8 +66,17 @@
                     await sleep(4000);
                   }
                 }
-
+                function sleep(ms) {
+                  return new Promise(resolve => setTimeout(resolve, ms));
+                }
                 waitBlock();
+                // Transaction successfull
+              //  console.log("Deployed at " + deployedContract.transactionHash);
+
+                // JavaScript-style sleep: http://stackoverflow.com/questions/951021/what-is-the-javascript-version-of-sleep
+
+
+
         </script>
     </head>
     <body>
