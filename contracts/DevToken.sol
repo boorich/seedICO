@@ -27,7 +27,6 @@ library SafeMath {
     }
 }
 
-
 // Basic ERC20 functions
 contract Token {
 
@@ -46,8 +45,14 @@ contract Token {
     uint8 public decimals;       // decimals of token
 }
 
+contract Revenue {
+     function convertFromDev(uint256 _numerOfTokens) public returns(bool _transferSuccessful);
+}
+
 // DevToken functions which are active during development phase
 contract Funding is Token {
+
+    event ConversionToRevTokens(address indexed devTokenOwner, uint256 numberOfTokens);
 
     // address of the developers
     address public owner;
@@ -59,6 +64,8 @@ contract Funding is Token {
     uint256 public maxStake;
     // tokens that are being sold per ether
     uint256 public tokensPerEther;
+    // RevToken address
+    Revenue public revToken;
 
     // modifiers: only allows Owner/Pool/Contract to call certain functions
     modifier onlyOwner {
@@ -103,6 +110,14 @@ contract Funding is Token {
     function getPrice() view public returns(uint _tokensPerEther) {
         // Adjust the token value to variable decimal-counts
         return tokensPerEther.mul(10**(18-uint256(decimals)));
+    }
+
+    // Convert a DevToken to a RevToken
+    function convertToRev() public onlyTokenHolder {
+        if(revToken.convertFromDev(msg.sender, balanceOf[msg.sender])) {
+            emit ConversionToRevTokens(msg.sender, balanceOf[msg.sender]);
+            balanceOf[msg.sender] = 0;
+        }
     }
 
 }
@@ -238,15 +253,35 @@ contract TaskVoting is Voting {
 
 }
 
+contract DevRev is TaskVoting {
+    // bool to see if RevToken was set
+    bool private set = false;
+    address public RevTokenContract;
+
+    function setRevContract(address _contractAddress) public onlyOwner {
+        require(!set);
+        set = true;
+        RevTokenContract = _contractAddress;
+    }
+
+    function swap(uint256 _tokenAmount) public onlyTokenHolder {
+        //
+    }
+
+}
+
 // DevRevToken combines DevToken and RevToken into one token
-contract DevToken is TaskVoting {
+contract DevToken is DevRev {
     function DevToken(
         // arguments Token
         string _name, string _symbol, uint8 _decimals, 
         // arguments Funding
-        uint256 _maxSupply, uint256 _maxStake, address _owner, uint256 _tokensPerEther, address[] _owners, uint256[] _balances, 
+        uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances, 
         // arguments TaskVoting
-        uint256 _proposalDuration, uint256 _minVotes) public {
+        uint256 _proposalDuration, uint256 _minVotes,
+
+        // address of the RevToken 
+        address _revTokenAddress) public {
 
         // constructor Token
         name = _name;
@@ -270,5 +305,7 @@ contract DevToken is TaskVoting {
         proposalDuration = _proposalDuration;
         minVotes = _minVotes;
 
+        require(_revTokenAddress != 0x0);
+        revToken = Revenue(_revTokenAddress);
     }
 }
