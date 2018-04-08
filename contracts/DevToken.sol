@@ -1,10 +1,8 @@
 pragma solidity 0.4.21;
 
-/**
-To Implement: DevTokens are non tradable and only for voting purposes. 
-The user can always exchange his DevTokens for RevTokens which are tradable
-RevTokens give the right to collect a dividend
- */
+interface RevToken {
+    function swap(uint256 _tokenAmount, address _tokenHolder) external returns(bool success);
+}
 
 // Safe Math library that automatically checks for overflows and underflows
 library SafeMath {
@@ -45,38 +43,29 @@ contract Token {
     uint8 public decimals;       // decimals of token
 }
 
-contract Revenue {
-     function convertFromDev(uint256 _numerOfTokens) public returns(bool _transferSuccessful);
-}
-
-// DevToken functions which are active during development phase
-contract Funding is Token {
-
-    event ConversionToRevTokens(address indexed devTokenOwner, uint256 numberOfTokens);
-
+contract Owned is Token {
     // address of the developers
     address public owner;
-    // maximum supply of the token
-    uint256 public maxSupply;
-    // time since the last emergency withdrawal
-    uint256 public emergencyWithdrawal;
-    // maximum stake someone can have of all tokens (in percent)
-    uint256 public maxStake;
-    // tokens that are being sold per ether
-    uint256 public tokensPerEther;
-    // RevToken address
-    Revenue public revToken;
-
     // modifiers: only allows Owner/Pool/Contract to call certain functions
     modifier onlyOwner {
         require(msg.sender == owner);
         _;
     }
     modifier onlyTokenHolder {
-        require(balanceOf[msg.sender] > 0 || msg.sender == address(this));
-        // require(!banned[msg.sender]);
+        require(balanceOf[msg.sender] > 0);
         _;
     }
+}
+
+// DevToken functions which are active during development phase
+contract Funding is Owned {
+
+    // maximum supply of the token
+    uint256 public maxSupply;
+    // maximum stake someone can have of all tokens (in percent)
+    uint256 public maxStake;
+    // tokens that are being sold per ether
+    uint256 public tokensPerEther;
 
     // lock ETH in contract and return DevTokens
     function () public payable {
@@ -93,16 +82,9 @@ contract Funding is Token {
         emit Transfer(address(this), msg.sender, msg.value.mul(tokensPerEther));
     }
 
-    // allows owner to withdraw 1 ether per week in case of an emergency or a malicous attack that prevents developers to access ETH in the contract at all
-    function emergencyWithdraw() public onlyOwner {
-        if (now.sub(emergencyWithdrawal) > 7 days) {
-            emergencyWithdrawal = now;
-            owner.transfer(1 ether);
-        }
-    }
     // constant function: return maximum possible investment per person
     function maxInvestment() public view returns(uint256) {
-        return totalSupply.mul(maxStake)/100;
+        return (totalSupply.mul(maxStake)/100).sub(balanceOf[msg.sender]);
     }
 
 
@@ -112,17 +94,35 @@ contract Funding is Token {
         return tokensPerEther.mul(10**(18-uint256(decimals)));
     }
 
-    // Convert a DevToken to a RevToken
-    function convertToRev() public onlyTokenHolder {
-        if(revToken.convertFromDev(msg.sender, balanceOf[msg.sender])) {
-            emit ConversionToRevTokens(msg.sender, balanceOf[msg.sender]);
-            balanceOf[msg.sender] = 0;
-        }
-    }
-
 }
+
+
+contract OwnerAllowance is Funding {
+    // time since last use of allowance
+    uint256 public allowanceTimeCounter;
+    // interval how often allowance is reset
+    uint256 public allowanceInterval;
+    // allowance amount per interval
+    uint256 public allowanceValue;
+    // current allowance balance
+    uint256 public allowanceBalance;
+    // allows owner to withdraw ether in an interval
+    function allowanceWithdrawal(uint256 _value) public onlyOwner {
+        if (now.sub(allowanceTimeCounter) > allowanceInterval) {
+            allowanceBalance = allowanceValue;
+            allowanceTimeCounter = now;
+        }
+        allowanceBalance = allowanceBalance.sub(_value);
+        owner.transfer(_value);
+    }
+}
+
+
+
+
+
 // voting implementation of DevToken contract
-contract Voting is Funding {
+contract Voting is OwnerAllowance {
     // limits the amount of proposals that can be made at time (optimum 1 proposal at a time, depends on proposal Durations of )
     mapping(address => uint256) lastProposal;
 }
@@ -146,6 +146,8 @@ contract TaskVoting is Voting {
     struct Proposal {
         // ID of proposal
         uint256 ID;
+        // short name
+        string name;
         // description of proposal
         string description;
         // amount of ETH-reward for development tasks
@@ -159,9 +161,9 @@ contract TaskVoting is Voting {
         mapping(address => bool) voted;
         // bool if poll is active
         bool active;
-        //
+        // bool if proposal was accepted
         bool accepted;
-        //
+        // bool if proposal was rewarded
         bool rewarded;
     }
 
@@ -169,7 +171,7 @@ contract TaskVoting is Voting {
     Proposal[] public proposals;
 
     // propose a new development task
-    function propose(string _description, uint256 _value) public onlyTokenHolder {
+    function propose(string _name, string _description, uint256 _value) public onlyTokenHolder {
 
         require(_value > address(this).balance);
         // allows one proposal per week and resets value after successful proposal
@@ -180,7 +182,7 @@ contract TaskVoting is Voting {
         uint256 ID = proposals.length;
 
         // initializes new proposal as a struct and pushes it into the proposal array
-        proposals.push(Proposal({ID: ID, description: _description, value: _value, start: now, yes: 0, no: 0, active: true, accepted: false, rewarded: false}));
+        proposals.push(Proposal({ID: ID, name: _name, description: _description, value: _value, start: now, yes: 0, no: 0, active: true, accepted: false, rewarded: false}));
 
         // event generated for proposal creation
         emit ProposalCreation(ID, _description);
@@ -245,27 +247,65 @@ contract TaskVoting is Voting {
     
     }
 
-    // function returnProposals() view public returns(Proposal[]) {
+    function getProposalLength() public view returns(uint256 length) {
+        return proposals.length;
+    }
 
-    //     return proposals;
+    function getProposalName(uint256 _ID) public view returns(string name) {
+        return proposals[_ID].name;
+    }
 
-    // }
+    function getProposalDescription(uint256 _ID) public view returns(string description) {
+        return proposals[_ID].description;
+    }
 
+    function getProposalValue(uint256 _ID) public view returns(uint256 value) {
+        return proposals[_ID].value;
+    }
+
+    function getProposalStart(uint256 _ID) public view returns(uint256 start) {
+        return proposals[_ID].start;
+    }
+
+    function getProposalYes(uint256 _ID) public view returns(uint256 yes) {
+        return proposals[_ID].yes;
+    }
+
+    function getProposalNo(uint256 _ID) public view returns(uint256 no) {
+        return proposals[_ID].no;
+    }
+
+    function getProposalActive(uint256 _ID) public view returns(bool active) {
+        return proposals[_ID].active;
+    }
+
+    function getProposalAccepted(uint256 _ID) public view returns(bool accepted) {
+        return proposals[_ID].accepted;
+    }
+
+    function getProposalRewarded(uint256 _ID) public view returns(bool rewarded) {
+        return proposals[_ID].rewarded;
+    }
 }
 
 contract DevRev is TaskVoting {
     // bool to see if RevToken was set
     bool private set = false;
-    address public RevTokenContract;
+    address public RevTokenAddress;
 
     function setRevContract(address _contractAddress) public onlyOwner {
-        require(!set);
+        require(!set && _contractAddress != 0x0);
         set = true;
-        RevTokenContract = _contractAddress;
+        RevTokenAddress = _contractAddress;
     }
 
     function swap(uint256 _tokenAmount) public onlyTokenHolder {
-        //
+        require(set);
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(_tokenAmount);
+        totalSupply = totalSupply.sub(_tokenAmount);
+        maxSupply = maxSupply.sub(_tokenAmount);
+        require(RevToken(RevTokenAddress).swap(_tokenAmount, msg.sender));
+        emit Transfer(msg.sender, RevTokenAddress, _tokenAmount);
     }
 
 }
@@ -278,10 +318,8 @@ contract DevToken is DevRev {
         // arguments Funding
         uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances, 
         // arguments TaskVoting
-        uint256 _proposalDuration, uint256 _minVotes,
-
-        // address of the RevToken 
-        address _revTokenAddress) public {
+        uint256 _proposalDuration, uint256 _minVotes
+        ) public {
 
         // constructor Token
         name = _name;
@@ -304,8 +342,5 @@ contract DevToken is DevRev {
         // constructor TaskVoting
         proposalDuration = _proposalDuration;
         minVotes = _minVotes;
-
-        require(_revTokenAddress != 0x0);
-        revToken = Revenue(_revTokenAddress);
     }
 }
