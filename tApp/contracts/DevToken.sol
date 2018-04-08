@@ -117,59 +117,6 @@ contract OwnerAllowance is Funding {
     }
 }
 
-contract Voting_X is Owned {
-    // allows one proposal at a time per person
-    mapping(address => uint256) lastProposal_X;
-    // duration of voting on a proposal
-    uint256 proposalDuration_X;
-    // percentage of minimum votes for proposal to get accepted
-    uint256 minVotes_X;
-    // constructor
-    function Voting_X(uint256 _proposalDuration_X, uint256 _minVotes_X) public {}
-    // Events
-    // creation event
-    event ProposalCreation_X(uint256 indexed ID, string indexed description);
-    // vote event
-    event UserVote_X(uint256 indexed ID, address indexed user, bool indexed value);
-    // successful proposal event
-    event SuccessfulProposal_X(uint256 indexed ID, string indexed description, uint256 indexed value);
-    // rejected proposal event
-    event RejectedProposal_X(uint256 indexed ID, string indexed description, string indexed reason);
-    // proposal structure
-    struct Proposal_X {
-        // ID of proposal
-        uint256 ID;
-        // short name
-        string name;
-        // description of proposal
-        string description;
-        // timestamp when poll started
-        uint256 start;
-        // collects votes
-        uint256 yes;
-        uint256 no;
-        // mapping that saves if user voted
-        mapping(address => bool) voted;
-        // bool if poll is active
-        bool active;
-        // bool if proposal was accepted
-        bool accepted;
-    }
-    // array of polls
-    Proposal_X[] public proposals_X;
-    // propose a new development task
-    // appends proposal struct to array
-    // emits ProposalCreation_X event
-    function propose_X(string _name, string _description) public onlyTokenHolder {}
-    // vote on a development task
-    // emits UserVote_X event
-    function vote(uint256 _ID, bool _vote) public onlyTokenHolder {}
-    // end voting for a development task
-    // emits SuccessfulProposal_X or RejectedProposal_X Event
-    function end(uint256 _ID) public onlyTokenHolder {}
-
-}
-
 // task voting implementation
 contract Voting_Task is OwnerAllowance {
 
@@ -274,7 +221,7 @@ contract Voting_Task is OwnerAllowance {
             // event generation
             emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Proposal rejected by vote");
         }
-    
+
     }
 
     function getProposalLength() public view returns(uint256 length) {
@@ -342,24 +289,35 @@ contract DevRev is Voting_Task {
 
 // DevRevToken combines DevToken and RevToken into one token
 contract DevToken is DevRev {
-    function DevToken() public {
+    function DevToken(
+        // arguments Token
+        string _name, string _symbol, uint8 _decimals,
+        // arguments Funding
+        uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances,
+        // arguments TaskVoting
+        uint256 _proposalDuration_Task, uint256 _minVotes_Task
+        ) public {
 
         // constructor Token
-        name = "TEST DEV";
-        symbol = "TT";
-        require(decimals <= 18);
-        decimals = 18;
+        name = _name;
+        symbol = _symbol;
+        require(_decimals <= 18);
+        decimals = _decimals;
         // constructor Funding
         owner = msg.sender;
         allowanceTimeCounter = now;
-        maxSupply = 100;
+        maxSupply = _maxSupply;
         // Adjust the token value to variable decimal-counts
-        tokensPerEther = 5/(10**(18 - uint256(decimals)));  //5 ist Token per Ether
-        totalSupply = 0;
-        require(maxSupply >= totalSupply);
-        maxStake = 25;
+        tokensPerEther = _tokensPerEther;
+        require(_owners.length == _balances.length);
+        for (uint256 i = 0; i < _owners.length; i++) {
+            balanceOf[_owners[i]] = balanceOf[_owners[i]].add(_balances[i]);
+            totalSupply = totalSupply.add(_balances[i]);
+        }
+        require(_maxSupply >= totalSupply);
+        maxStake = _maxStake;
         // constructor TaskVoting
-        proposalDuration_Task = 3600;
-        minVotes_Task = 51;
+        proposalDuration_Task = _proposalDuration_Task;
+        minVotes_Task = _minVotes_Task;
     }
 }
