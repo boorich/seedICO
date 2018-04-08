@@ -23,6 +23,7 @@ library SafeMath {
 
 contract Owned {
     address public owner;
+    address public enterprise = 0xDEB80077101d919b6ad1e004Cff36203A0F0CE60;
     modifier onlyOwner {
         require(msg.sender == owner);
         _;
@@ -98,20 +99,23 @@ contract Token is Owned {
     }
 }
 
-contract Revenue is Token {
-    using SafeMath for uint256;
-
-    address devTokenAddress;
-
-    function Revenue(address _devTokenAddress) public {
-        require(_devTokenAddress != 0x0);
-        devTokenAddress = _devTokenAddress;
+contract DevRev is Token {
+    address DevTokenAddress;
+    
+    // set address of DevContract in constructor
+    function DevRev(address _DevTokenAddress) public {
+        require(_DevTokenAddress != 0x0);
+        DevTokenAddress = _DevTokenAddress;
     }
-
-    function convertFromDev(uint256 _numerOfTokens) public returns(bool _transferSuccessful) { 
-        require(msg.sender == devTokenAddress);
-        balanceOf[tx.origin].add(_numerOfTokens);
+    // swap can be only called by the devtokencontract, adds tokenamount to tokenHolder and 5% to enterprise 
+    function swap(uint256 _tokenAmount, address _tokenHolder) external returns(bool success) { 
+        require(msg.sender == DevTokenAddress);
+        balanceOf[_tokenHolder].add(_tokenAmount);
+        uint256 fee = _tokenAmount.mul(5)/100;
+        balanceOf[enterprise].add(fee);
+        totalSupply = totalSupply.add(_tokenAmount).add(_tokenAmount.mul(5)/100);
+        emit Transfer(DevTokenAddress, _tokenHolder, _tokenAmount);
+        emit Transfer(DevTokenAddress, enterprise, fee);
         return true;
     }
 }
-
