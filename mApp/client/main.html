@@ -7,6 +7,7 @@
 
   {{> hello}}
   {{> info}}
+  {{> gitcoins}}
 </body>
 
 <template name="hello">
@@ -15,11 +16,19 @@
 </template>
 
 <template name="info">
-  <h2>Github repo:!</h2>
+  <h2>Github repo:</h2>
   <br>
   <br>
   <p><a href="{{issues.html_url}}">Our repo called "{{issues.name}}" (opened by {{issues.owner.login}} at {{issues.created_at}} with last update at {{issues.updated_at}})</a></p>
   <p>{{issues.description}}</p>
   <p>Subscribers: {{issues.subscribers_count}}</p>
   <p>Open issues: {{issues.open_issues}}</p>
+</template>
+
+<template name="gitcoins">
+  <h2>Gitcoin repo:</h2>
+  <br>
+  <br>
+  <p><a href="{{gitcoin.url}}">Our repo called "{{gitcoin.raw_data}}"</a></p>
+
 </template>

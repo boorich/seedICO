@@ -13,25 +13,43 @@ Template.hello.onCreated(function helloOnCreated() {
 });
 
 Template.info.onCreated(function infoOnCreated() {
-  // counter starts at 0
-
-  this.issues = new ReactiveVar("asd");
+  this.issues = new ReactiveVar("");
   var iss = this.issues;
-  function printRepoCount() {
+  function httpAnswer() {
     var responseObj = JSON.parse(this.responseText);
   	iss.set(responseObj);
-  	// alert(self.issues.get());
   }
 
-
   var request = new XMLHttpRequest();
-  request.onload = printRepoCount;
+  request.onload = httpAnswer;
   request.open('get', 'https://api.github.com/repos/empea-careercriminal/seedICO', true)
   request.send();
-
-  //selfT.instance().issues.set(self.issues.get());;
-  this.issues.set(this.issues.get());
 });
+
+Template.gitcoins.onCreated(function gitcoinsOnCreated() {
+  this.gitcoin = new ReactiveVar("");
+
+  var gits = this.gitcoin;
+
+  function httpAnswer() {
+    var responseObj = this.responseText;
+  	gits.set(responseObj);
+    alert(responseObj);
+  }
+
+  var request = new XMLHttpRequest();
+
+  request.onload = httpAnswer;
+  request.open('get', 'https://gitcoin.co/api/v0.1/bounties/0', true)
+  request.send();
+
+});
+
+
+
+
+
+
 
 Template.hello.helpers({
   counter() {
@@ -44,14 +62,17 @@ Template.info.helpers({
     return Template.instance().issues.get();
   },
 });
+Template.hello.events({
+  'click button'(event, instance) {
 
-  Template.hello.events({
-    'click button'(event, instance) {
-      // increment the counter when button is clicked
-      selfT.instance().counter.set(instance.counter.get() + 1);
-    },
-  });
-
+    selfT.instance().counter.set(instance.counter.get() + 1);
+  },
+});
+Template.gitcoins.helpers({
+  gitcoin() {
+    return Template.instance().gitcoin.get();
+  },
+});
 
 
 
