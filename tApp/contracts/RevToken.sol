@@ -51,13 +51,6 @@ contract Token is Owned {
     string public symbol;       // symbol of token
     uint8 public decimals;      // decimals of token
 
-    // Initialize contract without initial supply
-    function Token(string _name, string _symbol, uint8 _decimals) public {
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
-    }
-
     // Send coins
     function transfer(address _to, uint256 _value) public returns (bool success) {
         require(_to != 0x0);
@@ -101,13 +94,8 @@ contract Token is Owned {
 }
 
 contract DevRev is Token {
-    address DevTokenAddress;
-    
-    // set address of DevContract in constructor
-    function DevRev(address _DevTokenAddress) public {
-        require(_DevTokenAddress != 0x0);
-        DevTokenAddress = _DevTokenAddress;
-    }
+    address public DevTokenAddress;
+
     // swap can be only called by the devtokencontract, adds tokenamount to tokenHolder and 5% to enterprise 
     function swap(uint256 _tokenAmount, address _tokenHolder) external returns(bool success) { 
         require(msg.sender == DevTokenAddress);
@@ -118,5 +106,80 @@ contract DevRev is Token {
         emit Transfer(address(this), _tokenHolder, _tokenAmount);
         emit Transfer(address(this), enterprise, fee);
         return true;
+    }
+}
+
+contract RevSale is DevRev {
+    // Structure of an offer
+    struct RevSaleOffer {
+        // basic ID for the offer
+        uint256 ID;
+        // address of the seller
+        address seller;
+        // amount of tokens that are being offered
+        uint256 amount;
+        // total price of the tokens that are being sold
+        uint256 price;
+        // the specific address that this offer is for
+        // (if its a public offer this will be 0x0) 
+        address receiver;
+    }
+
+    // array of all current offers
+    RevSaleOffer[] public revSaleOffers;
+
+    // constructor
+    function RevSale(string _name, string _symbol, address _DevTokenAddress) public {
+      // name of the RevToken
+      name = _name;
+      // symbol of the RevToken
+      symbol = _symbol;
+      // decimals of the RevToken, fixed to 18
+      decimals = 18;
+
+      // set address of DevContract in constructor
+      require(_DevTokenAddress != 0x0);
+      DevTokenAddress = _DevTokenAddress;
+    }
+
+    // adding a new offer
+    function addOffer(uint256 _amount, uint256 _price, address _receiver) public {
+        // only tokenholder is allowed to add offers
+        require(balanceOf[msg.sender] > 0);
+        uint256 ID = revSaleOffers.length;
+        // add offer to the offers-array
+        revSaleOffers.push(RevSaleOffer(ID, msg.sender, _amount, _price, _receiver));
+    }
+
+    // deleting an offer
+    function deleteOffer(uint256 _id) public {
+        // only the seller is able to delete the offer
+        require(revSaleOffers[_id].seller == msg.sender);
+        // delete the offer from the array
+        delete revSaleOffers[_id];
+    }
+
+    // buying the tokens of a offer
+    function buyOffer(uint256 _id) payable public {
+        // token-balance of the seller has to suffice for the sale
+        require(balanceOf[revSaleOffers[_id].seller] >= revSaleOffers[_id].amount);
+        // buyer has to have enough ether for the current purchase
+        require(msg.value == revSaleOffers[_id].price);
+        // if the offer is not public and it's tailored towards a specific address..
+        if(revSaleOffers[_id].receiver != 0x0) {
+            // ..the receiver has to be correct
+            require(revSaleOffers[_id].receiver == msg.sender);
+        }
+
+        // transfer the RevTokens from the seller to the receiver
+        balanceOf[revSaleOffers[_id].seller] = balanceOf[revSaleOffers[_id].seller].sub(revSaleOffers[_id].amount);
+        balanceOf[msg.sender] = balanceOf[msg.sender].add(revSaleOffers[_id].amount);
+        emit Transfer(revSaleOffers[_id].seller, msg.sender, revSaleOffers[_id].amount);
+
+        // transfer the funds from the receiver to the seller of the tokens
+        revSaleOffers[_id].seller.transfer(revSaleOffers[_id].price);
+        
+        // remove the offer from the array
+        delete revSaleOffers[_id];
     }
 }
