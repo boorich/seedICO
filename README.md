@@ -1,3 +1,7 @@
+<a href="https://gitcoin.co/explorer?q=seedICO">
+    <img src="https://gitcoin.co/funding/embed?repo=https://github.com/empea-careercriminal/seedICO">
+</a>
+
 # seedICO
 *A framework for company building on the Ethereum Virtual machine.*
 
