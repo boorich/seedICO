@@ -12,7 +12,7 @@ Future versions of the software might look like this:
 <img src="https://github.com/empea-careercriminal/seedICO/blob/master/img/systems_overview.png">
 
 # who benefits from SeedICO
-* Software developers who want to focus on their product rather than setting up crypto-based crowd funding campaigns on
+* Software developers who want to focus on their product rather than setting up crypto-based crowd funding campaigns
 * Project developers interested in launching projects at speed
 * People interested in putting cryptoeconomic funds at the isoquant of productivity
 
