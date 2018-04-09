@@ -7,6 +7,10 @@ The framework aims at providing functions to cater for most of the standard cons
 
 Furthermore the SeedICO can be used to fund open issues and automate payments for developers based on Gitcoin.
 
+Future versions of the software might look like this:
+
+<img src="https://github.com/empea-careercriminal/seedICO/blob/master/img/systems_overview.png">
+
 # who benefits from SeedICO
 * Software developers who want to focus on their product rather than setting up crypto-based crowd funding campaigns on
 * Project developers interested in launching projects at speed
