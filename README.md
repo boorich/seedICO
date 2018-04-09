@@ -1,5 +1,5 @@
 # seedICO
-*A Framework for company building on the Ethereum Virtual machine.*
+*A framework for company building on the Ethereum Virtual machine.*
 
 SeedICO is an open framework for teams or individual developers who would like to deploy a SeedICO token generation event with ease.
 
