@@ -5,52 +5,64 @@ contract("DevToken", accounts => {
     before(async() => {
         devInstance = await DevToken.deployed();
     });
-
+    console.log("\nmaxSupply = %s\nmaxStake = %s\ntokensperEth = %s\nmaxStakeinToken = %s\nmaxStakeinEth = %s", args.maxSupply, args.maxStake, args.tokensperEth, args.maxStakeinToken, args.maxStakeinEth);
     it("init testing", async() => {
         var balance = await devInstance.balanceOf.call(args.owners[0]);
-        assert.equal(balance.valueOf(), args.balances[0], "initial balance should have " + web3.fromWei(args.balances[0],"ether") + " DVT");
+        assert.equal(balance.toNumber(), toWei(args.balances[0]), 
+        "initial balance of first account should be " + args.balances[0] + " DVT");
+        console.log("balance account 0: " + args.balances[0])
+
+        var balance = await devInstance.balanceOf.call(args.owners[1]);
+        assert.equal(balance.toNumber(), toWei(args.balances[1]), 
+        "initial balance of second account should be " + args.balances[1] + " DVT");
+        console.log("balance account 1: " + args.balances[1])
+
         var totalSupply = await devInstance.totalSupply.call();
-        assert.equal(totalSupply.valueOf(), args.balances[0], "totalSupply should be " + web3.fromWei(args.balances[0],"ether") + " DVT");
+        assert.equal(totalSupply.toNumber(), toWei(args.balances[0]+args.balances[1]), 
+        "totalSupply should be " + args.balances[0]+args.balances[1] + " DVT");
+        console.log("totalSupply: " + fromWei(totalSupply));
+        
         var maxSupply = await devInstance.maxSupply.call();
-        assert.equal(maxSupply.valueOf(), args.maxSupply, "maxSupply should be " + web3.fromWei(args.maxSupply,"ether") + " DVT")
+        assert.equal(maxSupply.toNumber(), toWei(args.maxSupply), 
+        "maxSupply should be " + args.maxSupply + " DVT");
+
         var owner = await devInstance.owner.call();
-        assert.equal(owner, accounts[0], "wrong owner");
+        assert.equal(owner, accounts[0], 
+        "wrong owner");
     });
 
     it("Funding", async() => {
         try {
-            await devInstance.sendTransaction({from: accounts[0], value: toWei(2)});
-            var totalSupply = await devInstance.totalSupply.call();
-            assert.fail("should have failed, totalSupply: " + web3.fromWei(totalSupply,"ether"));
+            var balance = await devInstance.balanceOf.call(args.owners[1]);
+            await devInstance.sendTransaction({from: accounts[1], value: toWei(args.maxStakeinEth)});
+            var balance1 = await devInstance.balanceOf.call(args.owners[1]);
+            assert.fail("Testing maxStake: should have failed, balance before: " + fromWei(balance) + ", balance afterwards: " + fromWei(balance1));
         } catch(error) {
             assertVMError(error);
         }
-
-        await devInstance.sendTransaction({from: accounts[0], value: toWei(1)});
-        var totalSupply = await devInstance.totalSupply();
-        assert.equal(totalSupply.valueOf(), toWei(25), "should have totalSupply of 25 DVT");
-
-        await devInstance.sendTransaction({from: accounts[1], value: toWei(5)});
+        try {
+            await devInstance.sendTransaction({from: accounts[4], value: 0});
+            var totalSupply = await devInstance.totalSupply.call();
+            assert.fail("Testing fallback function: should have failed, not accepting 0 ETH");
+        } catch(error) {
+            assertVMError(error);
+        }
+        
+        await devInstance.sendTransaction({from: accounts[1], value: toWei(args.maxStakeinEth/2)});
         totalSupply = await devInstance.totalSupply();
-        assert.equal(totalSupply.valueOf(), toWei(50), "should have totalSupply of 50 DVT");
+        assert.equal(totalSupply.toNumber(), toWei(args.maxSupply*3/4), 
+        "should have totalSupply of " + args.maxSupply*3/4 + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
 
-        await devInstance.sendTransaction({from: accounts[2], value: toWei(4)});
-        totalSupply = await devInstance.totalSupply();
-        assert.equal(totalSupply.valueOf(), toWei(70), "should have totalSupply of 70 DVT");
-
-        await devInstance.sendTransaction({from: accounts[3], value: toWei(3)});
-        totalSupply = await devInstance.totalSupply();
-        assert.equal(totalSupply.valueOf(), toWei(85), "should have totalSupply of 85 DVT");
-
-        await devInstance.sendTransaction({from: accounts[4], value: toWei(3)});
+        await devInstance.sendTransaction({from: accounts[2], value: toWei(args.maxStakeinEth)});
         totalSupply = await devInstance.totalSupply();
         var maxSupply = await devInstance.maxSupply();
-        assert.equal(totalSupply.valueOf(), maxSupply.valueOf(), "should have totalSupply of 100 DVT");
+        assert.equal(totalSupply.toNumber(), maxSupply.toNumber(), 
+        "should have totalSupply (equal to maxSupply) of " + fromWei(maxSupply) + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
 
         try {
-            await devInstance.sendTransaction({from: accounts[5], value: toWei(1)});
+            await devInstance.sendTransaction({from: accounts[3], value: 1});
             var totalSupply = await devInstance.totalSupply.call();
-            assert.fail("should have failed, totalSupply: " + web3.fromWei(totalSupply,"ether"));
+            assert.fail("Testing maxSupply: should have failed, should not be able to invest more than maxSupply");
         } catch(error) {
             assertVMError(error);
         }
@@ -63,5 +75,8 @@ function assertVMError(error){
     assert.isAbove(error.message.search('VM Exception'), -1, 'Error should have been caused by EVM');
 }
 function toWei(x) {
-    return x*(10**18);
+    return web3.toWei(x, "ether");
+}
+function fromWei(x) {
+    return web3.fromWei(x, "ether");
 }

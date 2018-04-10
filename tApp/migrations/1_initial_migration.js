@@ -1,8 +1,14 @@
 var Migrations = artifacts.require("./Migrations.sol");
 var DevToken = artifacts.require("./DevToken.sol");
 
+
+
 module.exports = function(deployer, network, accounts) {
     var args = require("../constructor.js")(accounts);
     deployer.deploy(Migrations);
-    deployer.deploy(DevToken, args.name, args.symbol, args.maxSupply, args.maxStake, args.tokensPerEther, args.owners, args.balances, args.allowanceInterval, args.allowanceValue, args.proposalDuration, args.minVotes);
+    var balances = [];
+    for (var i = 0; i < args.balances.length; i++) {
+        balances[i] = web3.toWei(args.balances[i]);
+    }
+    deployer.deploy(DevToken, args.name, args.symbol, web3.toWei(args.maxSupply,"ether"), args.maxStake, args.tokensPerEther, args.owners, balances, args.allowanceInterval, web3.toWei(args.allowanceValue, "ether"), args.proposalDuration, args.minVotes);
 };
