@@ -5,21 +5,15 @@ contract("DevToken", accounts => {
     before(async() => {
         devInstance = await DevToken.deployed();
     });
-    console.log("\nmaxSupply = %s\nmaxStake = %s\ntokensPerEth = %s\nmaxStakeinToken = %s\nmaxStakeinEth = %s\n", args.maxSupply, args.maxStake, args.tokensPerEth, args.maxStakeinToken, args.maxStakeinEth);
+    // test inital variables
     it("init testing", async() => {
         var balance = await devInstance.balanceOf.call(args.owners[0]);
         assert.equal(balance.toNumber(), toWei(args.balances[0]), 
         "initial balance of first account should be " + args.balances[0] + " DVT");
-        console.log("balance account 0: " + args.balances[0])
-
-        var balance = await devInstance.balanceOf.call(args.owners[1]);
-        assert.equal(balance.toNumber(), toWei(args.balances[1]), 
-        "initial balance of second account should be " + args.balances[1] + " DVT");
-        console.log("balance account 1: " + args.balances[1])
 
         var totalSupply = await devInstance.totalSupply.call();
-        assert.equal(totalSupply.toNumber(), toWei(args.balances[0]+args.balances[1]), 
-        "totalSupply should be " + args.balances[0]+args.balances[1] + " DVT");
+        assert.equal(totalSupply.toNumber(), toWei(args.balances[0]), 
+        "totalSupply should be " + args.balances[0] + " DVT");
         console.log("totalSupply: " + fromWei(totalSupply));
 
         var maxSupply = await devInstance.maxSupply.call();
@@ -30,42 +24,63 @@ contract("DevToken", accounts => {
         var tokensPerEth = await devInstance.tokensPerEth.call();
         assert.equal(tokensPerEth.toNumber(), args.tokensPerEth, 
         "tokensPerEth should be " + args.tokensPerEth + " DVT");
-        console.log("maxSupply: " + tokensPerEth);
+        console.log("tokensPerEth: " + tokensPerEth);
+        
+        var maxStake = await devInstance.maxStake.call();
+        assert.equal(maxStake.toNumber(), args.maxStake, 
+        "maxStake should be " + args.maxStake + " DVT");
+        console.log("maxStake: " + maxStake);
 
         var owner = await devInstance.owner.call();
         assert.equal(owner, accounts[0], 
         "wrong owner");
+        console.log("maxStakeinToken = %s\nmaxStakeinEth = %s\n", args.maxStakeinToken, args.maxStakeinEth);
     });
+
     it("Funding", async() => {
+        console.log("balance account 0: " + args.balances[0]);
         try {
-            var balance = await devInstance.balanceOf.call(args.owners[1]);
-            await devInstance.sendTransaction({from: args.owners[1], value: toWei(args.maxStakeinEth)});
-            var balance1 = await devInstance.balanceOf.call(args.owners[1]);
+            var balance = await devInstance.balanceOf.call(args.owners[0]);
+            await devInstance.sendTransaction({from: args.owners[0], value: 1});
+            var balance1 = await devInstance.balanceOf.call(args.owners[0]);
             assert.fail("Testing maxStake: should have failed, balance before: " + fromWei(balance) + ", balance afterwards: " + fromWei(balance1));
         } catch(error) {
             assertVMError(error);
         }
         try {
-            await devInstance.sendTransaction({from: accounts[4], value: 0});
-            var totalSupply = await devInstance.totalSupply.call();
+            await devInstance.sendTransaction({from: accounts[9], value: 0});
             assert.fail("Testing fallback function: should have failed, not accepting 0 ETH");
         } catch(error) {
             assertVMError(error);
         }
-        
-        await devInstance.sendTransaction({from: accounts[1], value: toWei(args.maxStakeinEth/2)});
-        totalSupply = await devInstance.totalSupply();
-        assert.equal(totalSupply.toNumber(), toWei(args.maxSupply*3/4), 
-        "should have totalSupply of " + args.maxSupply*3/4 + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
 
-        await devInstance.sendTransaction({from: accounts[2], value: toWei(args.maxStakeinEth)});
-        totalSupply = await devInstance.totalSupply();
-        var maxSupply = await devInstance.maxSupply();
-        assert.equal(totalSupply.toNumber(), maxSupply.toNumber(), 
-        "should have totalSupply (equal to maxSupply) of " + fromWei(maxSupply) + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
+        // fill available accounts with maxStake until full
+        var totalSupply = await devInstance.totalSupply.call();
+        var maxSupply = await devInstance.maxSupply.call();
+        var balance0 = args.balances[0];
 
+        for (var i = 1; i < 9; i++) {
+            if ((maxSupply-totalSupply) <= toWei(args.maxStakeinToken)) {
+                var balance = (maxSupply-totalSupply)/args.tokensPerEth;
+                await devInstance.sendTransaction({from: accounts[i], value: balance});
+                totalSupply = await devInstance.totalSupply();
+                assert.equal(totalSupply.toNumber(), maxSupply.toNumber(), 
+                "should have totalSupply (equal to maxSupply) of " + fromWei(maxSupply) + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
+                balance = await devInstance.balanceOf.call(accounts[i]); 
+                console.log("balance account " + i + ": " + fromWei(balance));
+                break;
+            } else {
+                await devInstance.sendTransaction({from: accounts[i], value: toWei(args.maxStakeinEth)});
+                totalSupply = await devInstance.totalSupply();
+                var balance = toWei(balance0+i*args.maxStakeinToken);
+                assert.equal(totalSupply.toNumber(), balance,
+                "should have totalSupply of " + fromWei(balance) + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
+                var balance = await devInstance.balanceOf.call(accounts[i]);
+                console.log("balance account " + i + ": " + fromWei(balance));
+            }
+        }
         try {
-            await devInstance.sendTransaction({from: accounts[3], value: 1});
+            await devInstance.sendTransaction({from: accounts[9], value: 1});
             var totalSupply = await devInstance.totalSupply.call();
             assert.fail("Testing maxSupply: should have failed, should not be able to invest more than maxSupply");
         } catch(error) {

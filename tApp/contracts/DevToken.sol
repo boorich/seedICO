@@ -12,11 +12,13 @@ library SafeMath {
         require(a == 0 || c / a == b);
         return c;
     }
+
     // Safe subtraction
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b <= a);
         return a - b;
     }
+
     // Safe addition
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
@@ -70,17 +72,15 @@ contract Funding is Owned {
     // lock ETH in contract and return DevTokens
     function () public payable {
         require(msg.value > 0);
-        emit Transfer(address(this), msg.sender, msg.value);
-        emit Transfer(address(this), msg.sender, tokensPerEth);
 
         // adds the amount of ETH sent as DevToken value and increases total supply
         balanceOf[msg.sender] = balanceOf[msg.sender].add(msg.value.mul(tokensPerEth));
         totalSupply = totalSupply.add(msg.value.mul(tokensPerEth));
 
-        // fails if total supply surpasses maximum supply
-        require(totalSupply <= maxSupply);
         // user cannot deposit more than "maxStake"% of the total supply
         require(balanceOf[msg.sender] <= maxSupply.mul(maxStake)/100);
+        // fails if total supply surpasses maximum supply
+        require(totalSupply <= maxSupply);
 
         // transfer event
         emit Transfer(address(this), msg.sender, msg.value.mul(tokensPerEth));
@@ -312,6 +312,7 @@ contract DevToken is DevRev {
             emit Transfer(address(this), _owners[i], _balances[i]);
         }
         require(_maxSupply >= totalSupply);
+        require(_maxStake > 0 && _maxStake <= 100);
         maxStake = _maxStake;
         // constructor OwnerAllowance
         allowanceTimeCounter = now;
