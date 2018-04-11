@@ -65,14 +65,17 @@ contract Funding is Owned {
     // maximum stake someone can have of all tokens (in percent)
     uint256 public maxStake;
     // tokens that are being sold per ether
-    uint256 public tokensPerEther;
+    uint256 public tokensPerEth;
 
     // lock ETH in contract and return DevTokens
     function () public payable {
         require(msg.value > 0);
+        emit Transfer(address(this), msg.sender, msg.value);
+        emit Transfer(address(this), msg.sender, tokensPerEth);
+
         // adds the amount of ETH sent as DevToken value and increases total supply
-        balanceOf[msg.sender] = balanceOf[msg.sender].add(msg.value.mul(tokensPerEther));
-        totalSupply = totalSupply.add(msg.value.mul(tokensPerEther));
+        balanceOf[msg.sender] = balanceOf[msg.sender].add(msg.value.mul(tokensPerEth));
+        totalSupply = totalSupply.add(msg.value.mul(tokensPerEth));
 
         // fails if total supply surpasses maximum supply
         require(totalSupply <= maxSupply);
@@ -80,7 +83,7 @@ contract Funding is Owned {
         require(balanceOf[msg.sender] <= maxSupply.mul(maxStake)/100);
 
         // transfer event
-        emit Transfer(address(this), msg.sender, msg.value.mul(tokensPerEther));
+        emit Transfer(address(this), msg.sender, msg.value.mul(tokensPerEth));
     }
 
     // constant function: return maximum possible investment per person
@@ -286,7 +289,7 @@ contract DevToken is DevRev {
         // arguments Token
         string _name, string _symbol,
         // arguments Funding
-        uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEther, address[] _owners, uint256[] _balances,
+        uint256 _maxSupply, uint256 _maxStake, uint256 _tokensPerEth, address[] _owners, uint256[] _balances,
         // arguments OwnerAllowance
         uint256 _allowanceInterval, uint256 _allowanceValue,
         // arguments TaskVoting
@@ -300,7 +303,8 @@ contract DevToken is DevRev {
         // constructor Funding
         owner = msg.sender;
         maxSupply = _maxSupply;
-        tokensPerEther = _tokensPerEther;
+        require(_tokensPerEth > 0);
+        tokensPerEth = _tokensPerEth;
         require(_owners.length == _balances.length);
         for (uint256 i = 0; i < _owners.length; i++) {
             balanceOf[_owners[i]] = balanceOf[_owners[i]].add(_balances[i]);

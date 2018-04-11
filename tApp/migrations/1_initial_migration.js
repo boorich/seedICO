@@ -10,5 +10,5 @@ module.exports = function(deployer, network, accounts) {
     for (var i = 0; i < args.balances.length; i++) {
         balances[i] = web3.toWei(args.balances[i]);
     }
-    deployer.deploy(DevToken, args.name, args.symbol, web3.toWei(args.maxSupply,"ether"), args.maxStake, args.tokensPerEther, args.owners, balances, args.allowanceInterval, web3.toWei(args.allowanceValue, "ether"), args.proposalDuration, args.minVotes);
+    deployer.deploy(DevToken, args.name, args.symbol, web3.toWei(args.maxSupply,"ether"), args.maxStake, args.tokensPerEth, args.owners, balances, args.allowanceInterval, web3.toWei(args.allowanceValue, "ether"), args.proposalDuration, args.minVotes);
 };

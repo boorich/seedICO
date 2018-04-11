@@ -5,7 +5,7 @@ contract("DevToken", accounts => {
     before(async() => {
         devInstance = await DevToken.deployed();
     });
-    console.log("\nmaxSupply = %s\nmaxStake = %s\ntokensperEth = %s\nmaxStakeinToken = %s\nmaxStakeinEth = %s", args.maxSupply, args.maxStake, args.tokensperEth, args.maxStakeinToken, args.maxStakeinEth);
+    console.log("\nmaxSupply = %s\nmaxStake = %s\ntokensPerEth = %s\nmaxStakeinToken = %s\nmaxStakeinEth = %s\n", args.maxSupply, args.maxStake, args.tokensPerEth, args.maxStakeinToken, args.maxStakeinEth);
     it("init testing", async() => {
         var balance = await devInstance.balanceOf.call(args.owners[0]);
         assert.equal(balance.toNumber(), toWei(args.balances[0]), 
@@ -21,20 +21,25 @@ contract("DevToken", accounts => {
         assert.equal(totalSupply.toNumber(), toWei(args.balances[0]+args.balances[1]), 
         "totalSupply should be " + args.balances[0]+args.balances[1] + " DVT");
         console.log("totalSupply: " + fromWei(totalSupply));
-        
+
         var maxSupply = await devInstance.maxSupply.call();
         assert.equal(maxSupply.toNumber(), toWei(args.maxSupply), 
         "maxSupply should be " + args.maxSupply + " DVT");
+        console.log("maxSupply: " + fromWei(maxSupply));
+
+        var tokensPerEth = await devInstance.tokensPerEth.call();
+        assert.equal(tokensPerEth.toNumber(), args.tokensPerEth, 
+        "tokensPerEth should be " + args.tokensPerEth + " DVT");
+        console.log("maxSupply: " + tokensPerEth);
 
         var owner = await devInstance.owner.call();
         assert.equal(owner, accounts[0], 
         "wrong owner");
     });
-
     it("Funding", async() => {
         try {
             var balance = await devInstance.balanceOf.call(args.owners[1]);
-            await devInstance.sendTransaction({from: accounts[1], value: toWei(args.maxStakeinEth)});
+            await devInstance.sendTransaction({from: args.owners[1], value: toWei(args.maxStakeinEth)});
             var balance1 = await devInstance.balanceOf.call(args.owners[1]);
             assert.fail("Testing maxStake: should have failed, balance before: " + fromWei(balance) + ", balance afterwards: " + fromWei(balance1));
         } catch(error) {
