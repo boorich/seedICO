@@ -1,6 +1,6 @@
 //values have to be entered without decimals
 module.exports = function(accounts) {
-    var maxStake = 30;
+    var maxStake = 25;
     var maxSupply = 100;
     var tokensPerEth = 5;
     var maxStakeinToken = maxStake*maxSupply/100;
@@ -27,7 +27,7 @@ module.exports = function(accounts) {
         balances: [
             balance0,
         ],
-        allowanceInterval: 60,
+        allowanceInterval: 20,
         allowanceValue: 1,
         proposalDuration: 60,
         minVotes: 50,
