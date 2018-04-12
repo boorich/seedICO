@@ -1,3 +1,27 @@
+/*
+DevToken - Documentation
+
+Contract to deploy: DevToken
+
+Arguments (with example-values):
+{   name: "DevToken",                       // Name of the token
+    symbol: "DVT",                          // Symbol of the token
+    maxSupply: web3.toWei(100, 'ether'),    // max number of tokens
+    maxStake: 25,                           // percentage of tokens anyone can hold
+    tokensPerEther: 5,                      // tokens bought per ether
+    owners: [                               // array of owner/founder accounts
+        web3.eth.accounts[0],
+    ],
+    balances: [                             // balances of the indiviual owners/founders
+        web3.toWei(20, 'ether'),
+    ],
+    allowanceInterval: 60,                  // interval of the owner allowance in seconds
+    allowanceValue: web3.toWei(1, 'ether'), // value of the owner allowance
+    proposalDuration: 60,                   // duration of a proposal/vote
+    minVotes: 50                               // minumum vote participation in percent to end a vote
+};
+*/
+
 pragma solidity 0.4.21;
 
 interface RevToken {
