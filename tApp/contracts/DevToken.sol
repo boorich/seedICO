@@ -145,10 +145,10 @@ contract Voting_Task is OwnerAllowance {
     uint256 minVotes_Task;
     uint256 ratio_Task;
 
-    event ProposalCreation_Task(uint256 indexed ID, string indexed description);
-    event UserVote_Task(uint256 indexed ID, address indexed user, bool indexed value);
-    event SuccessfulProposal_Task(uint256 indexed ID, string indexed description, uint256 indexed value);
-    event RejectedProposal_Task(uint256 indexed ID, string indexed description, string indexed reason);
+    event ProposalCreation_Task(uint256 indexed ID, string description);
+    event UserVote_Task(uint256 indexed ID, address user, bool value);
+    event SuccessfulProposal_Task(uint256 indexed ID, string description, uint256 value);
+    event RejectedProposal_Task(uint256 indexed ID, string description, string reason);
 
     struct Proposal_Task {
         uint256 ID;
@@ -171,7 +171,7 @@ contract Voting_Task is OwnerAllowance {
 
     function propose_Task(string _name, string _description, uint256 _value) external onlyTokenHolder {
 
-        require(_value > address(this).balance);
+        require(_value <= address(this).balance);
         // allows one proposal per week and resets value after successful proposal
         require(now.sub(lastProposal_Task[msg.sender]) > proposalDuration_Task);
         lastProposal_Task[msg.sender] = now;
@@ -228,27 +228,28 @@ contract Voting_Task is OwnerAllowance {
         proposals_Task[_ID].active = false;
 
         // rejects proposal if not enough people voted on it
-        if (proposals_Task[_ID].no.mul(ratio_Task).add(proposals_Task[_ID].yes.mul(100-ratio_Task)) < (minVotes_Task.mul(totalSupply))/100) {
+        if (proposals_Task[_ID].no.add(proposals_Task[_ID].yes) < (minVotes_Task.mul(totalSupply))/100) {
             // event generation
             emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Participation too low");
-
-        // compares yes and no votes
-        } else if (proposals_Task[_ID].yes > proposals_Task[_ID].no) {
-            proposals_Task[_ID].accepted = true;
-            // event generation
-            emit SuccessfulProposal_Task(_ID, proposals_Task[_ID].description, proposals_Task[_ID].value);
-            payReward_Task(_ID);
         } else {
-            // event generation
-            emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Proposal rejected by vote");
+            uint256 max = 100;
+            // compares yes and no votes
+            if (proposals_Task[_ID].yes.mul(max.sub(ratio_Task)) >= proposals_Task[_ID].no.mul(ratio_Task)) {
+                proposals_Task[_ID].accepted = true;
+                // event generation
+                emit SuccessfulProposal_Task(_ID, proposals_Task[_ID].description, proposals_Task[_ID].value);
+                payReward_Task(_ID);
+            } else {
+                // event generation
+                emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Proposal rejected by vote");
+            }
         }
-
     }
 
     function payReward_Task(uint256 _ID) public {
         require(proposals_Task[_ID].accepted && !proposals_Task[_ID].rewarded);
         proposals_Task[_ID].rewarded = true;
-        owner.transfer(proposals_Task[_ID].value);
+        owner.send(proposals_Task[_ID].value);
     }
 
     function getProposalLength_Task() public view returns(uint256 length) {

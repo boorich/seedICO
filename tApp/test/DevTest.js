@@ -85,7 +85,8 @@ contract("DevToken", accounts => {
                 assert.equal(totalSupply.toNumber(), maxSupply.toNumber(), 
                 "should have totalSupply (equal to maxSupply) of " + fromWei(maxSupply) + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
                 balance = await devInstance.balanceOf.call(accounts[i]); 
-                console.log("balance account " + i + ": " + fromWei(balance) + "\n");
+                console.log("balance account " + i + ": " + fromWei(balance));
+                console.log("contract balance: " + fromWei(web3.eth.getBalance(DevToken.address)) + " ETH\n");
                 break;
             } else {
                 await devInstance.sendTransaction({from: accounts[i], value: toWei(args[0].maxStakeinEth)});
@@ -104,6 +105,7 @@ contract("DevToken", accounts => {
             assertVMError(error);
         }
     });
+
     it("ownerAllowance", async() => {
         try {
             await devInstance.allowanceWithdrawal(1,{from: accounts[1]});
@@ -141,7 +143,39 @@ contract("DevToken", accounts => {
         } catch(error) {
             assertVMError(error);
         }
-    })
+    });
+
+    it("TaskVoting testing", async() => {
+        // testing proposeTask
+        try {
+            await devInstance.propose_Task("test-name-1", "test-description-1", toWei(1) , {from: accounts[9]});
+            assert.fail("Testing onlyTokenholder Modifier: should have failed");
+        } catch(error) {
+            assertVMError(error);
+        }
+        try {
+            await devInstance.propose_Task("test-name-1", "test-description-1", toWei(10000), {from: accounts[0]});
+            assert.fail("Testing contract balance: should have failed");
+        } catch(error) {
+            assertVMError(error);
+        }
+        await devInstance.propose_Task("test-name-1", "test-description-1", toWei(1) , {from: accounts[0]});
+        var proposalLength = await devInstance.getProposalLength_Task.call();
+        assert.equal(1, proposalLength.toNumber(),
+        "should have proposalLength of " + 1 + ", actual proposalLength: " + proposalLength.toNumber());
+        try {
+            await devInstance.propose_Task("test-name-1", "test-description-1", toWei(1), {from: accounts[0]});
+            assert.fail("Testing proposalDuration_Task: should have failed");
+        } catch(error) {
+            assertVMError(error);
+        }
+        wait(args[0].proposalDuration_Task);
+        await devInstance.propose_Task("test-name-2", "test-description-2", toWei(1) , {from: accounts[0]});
+        var proposalLength = await devInstance.getProposalLength_Task.call();
+        assert.equal(2, proposalLength.toNumber(),
+        "should have proposalLength of " + 2 + ", actual proposalLength: " + proposalLength.toNumber());
+    });
+
     it("set/check DevToken and RevToken addresses", async() => {
         try {
             await devInstance.setRevContract(RevToken.address, {from: accounts[1]});
