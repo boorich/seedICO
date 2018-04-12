@@ -27,7 +27,7 @@ module.exports = function(accounts) {
         balances: [
             balance0,
         ],
-        allowanceInterval: 20,
+        allowanceInterval: 1,
         allowanceValue: 1,
         proposalDuration: 60,
         minVotes: 50,

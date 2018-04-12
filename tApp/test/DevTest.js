@@ -82,7 +82,7 @@ contract("DevToken", accounts => {
                 assert.equal(totalSupply.toNumber(), maxSupply.toNumber(), 
                 "should have totalSupply (equal to maxSupply) of " + fromWei(maxSupply) + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
                 balance = await devInstance.balanceOf.call(accounts[i]); 
-                console.log("balance account " + i + ": " + fromWei(balance));
+                console.log("balance account " + i + ": " + fromWei(balance) + "\n");
                 break;
             } else {
                 await devInstance.sendTransaction({from: accounts[i], value: toWei(args.maxStakeinEth)});
@@ -104,28 +104,41 @@ contract("DevToken", accounts => {
     });
     it("ownerAllowance", async() => {
         try {
-            await devInstance.allowanceWithdrawal.call(1,{from: accounts[1]});
+            await devInstance.allowanceWithdrawal(1,{from: accounts[1]});
             assert.fail("Testing owner: should have failed, wrong address");
         } catch(error) {
             assertVMError(error);
         }
 
-        await devInstance.allowanceWithdrawal.call(toWei(args.allowanceValue/2),{from: accounts[0]});
+        await devInstance.allowanceWithdrawal(toWei(args.allowanceValue/2),{from: accounts[0]});
         var allowanceBalance = await devInstance.allowanceBalance.call();
         assert.equal(toWei(args.allowanceValue/2), allowanceBalance.toNumber(),
         "should have allowanceBalance of " + args.allowanceValue/2 + " ETH, actual allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
-        // await devInstance.allowanceWithdrawal.call(toWei(args.allowanceValue/2),{from: accounts[0]});
-        // var allowanceBalance = await devInstance.allowanceBalance.call();
-        // assert.equal(allowanceBalance.toNumber(), 0,
-        // "should have allowanceBalance of " + 0 + " ETH, actual allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
+        
+        await devInstance.allowanceWithdrawal(toWei(args.allowanceValue/2),{from: accounts[0]});
+        var allowanceBalance = await devInstance.allowanceBalance.call();
+        assert.equal(0, allowanceBalance.toNumber(),
+        "should have allowanceBalance of " + 0 + " ETH, actual allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
 
-        // try {
-        //     await devInstance.sendTransaction({from: accounts[9], value: 1});
-        //     var totalSupply = await devInstance.totalSupply.call();
-        //     assert.fail("Testing maxSupply: should have failed, should not be able to invest more than maxSupply");
-        // } catch(error) {
-        //     assertVMError(error);
-        // }
+        try {
+            await devInstance.allowanceWithdrawal(toWei(args.allowanceValue),{from: accounts[0]});
+            assert.fail("Testing allowanceBalance: should have failed");
+        } catch(error) {
+            assertVMError(error);
+        }
+        // wait x seconds to check balance after allowance interval 
+        wait(args.allowanceInterval);
+        await devInstance.allowanceWithdrawal(toWei(args.allowanceValue),{from: accounts[0]});
+        var allowanceBalance = await devInstance.allowanceBalance.call();
+        assert.equal(0, allowanceBalance.toNumber(),
+        "should have allowanceBalance of " + 0 + " ETH, actual allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
+        
+        try {
+            await devInstance.allowanceWithdrawal(toWei(args.allowanceValue),{from: accounts[0]});
+            assert.fail("Testing allowanceBalance: should have failed");
+        } catch(error) {
+            assertVMError(error);
+        }
     })
 });
 
