@@ -93,7 +93,6 @@ contract Funding is Owned {
 }
 
 contract OwnerAllowance is Funding {
-    event Withdraw(address indexed to, uint256 value);
     // time since last use of allowance
     uint256 public allowanceTimeCounter;
     // interval how often allowance is reset
@@ -105,7 +104,6 @@ contract OwnerAllowance is Funding {
 
     // allows owner to withdraw ether in an interval
     function allowanceWithdrawal(uint256 _value) public onlyOwner {
-        emit Withdraw(owner, _value);
         if (now.sub(allowanceTimeCounter) > allowanceInterval) {
             allowanceBalance = allowanceValue;
             allowanceTimeCounter = now;

@@ -99,9 +99,9 @@ contract DevRev is Token {
     // swap can be only called by the devtokencontract, adds tokenamount to tokenHolder and 5% to enterprise 
     function swap(uint256 _tokenAmount, address _tokenHolder) external returns(bool success) { 
         require(msg.sender == DevTokenAddress);
-        balanceOf[_tokenHolder].add(_tokenAmount);
+        balanceOf[_tokenHolder] = balanceOf[_tokenHolder].add(_tokenAmount);
         uint256 fee = _tokenAmount.mul(5)/100;
-        balanceOf[enterprise].add(fee);
+        balanceOf[enterprise] = balanceOf[enterprise].add(fee);
         totalSupply = totalSupply.add(_tokenAmount).add(fee);
         emit Transfer(address(this), _tokenHolder, _tokenAmount);
         emit Transfer(address(this), enterprise, fee);
@@ -127,20 +127,6 @@ contract RevSale is DevRev {
 
     // array of all current offers
     RevSaleOffer[] public revSaleOffers;
-
-    // constructor
-    function RevSale(string _name, string _symbol, address _DevTokenAddress) public {
-      // name of the RevToken
-      name = _name;
-      // symbol of the RevToken
-      symbol = _symbol;
-      // decimals of the RevToken, fixed to 18
-      decimals = 18;
-
-      // set address of DevContract in constructor
-      require(_DevTokenAddress != 0x0);
-      DevTokenAddress = _DevTokenAddress;
-    }
 
     // adding a new offer
     function addOffer(uint256 _amount, uint256 _price, address _receiver) public {
@@ -181,5 +167,21 @@ contract RevSale is DevRev {
         
         // remove the offer from the array
         delete revSaleOffers[_id];
+    }
+}
+
+contract RevToken is RevSale {
+    // constructor
+    function RevToken(string _name, string _symbol, address _DevTokenAddress) public {
+        // name of the RevToken
+        name = _name;
+        // symbol of the RevToken
+        symbol = _symbol;
+        // decimals of the RevToken, fixed to 18
+        decimals = 18;
+
+        // set address of DevContract in constructor
+        require(_DevTokenAddress != 0x0);
+        DevTokenAddress = _DevTokenAddress;
     }
 }

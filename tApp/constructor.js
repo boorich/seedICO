@@ -15,7 +15,7 @@ module.exports = function(accounts) {
         balance0 = maxSupply*0.4;
     }
 
-    return arguments = {
+    return arguments = [{
         name: "DevToken",
         symbol: "DVT",
         maxSupply: maxSupply,
@@ -33,5 +33,9 @@ module.exports = function(accounts) {
         minVotes: 50,
         maxStakeinToken: maxStakeinToken,
         maxStakeinEth: maxStakeinEth,
-    }
+    },
+    {
+        name: "RevToken",
+        symbol: "RVT",
+    }]
 }

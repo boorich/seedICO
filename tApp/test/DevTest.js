@@ -1,63 +1,66 @@
 var DevToken = artifacts.require("./DevToken.sol");
+var RevToken = artifacts.require("./RevToken.sol");
 var devInstance;
+var revInstance;
 contract("DevToken", accounts => {
     var args = require("../constructor.js")(accounts);
     before(async() => {
         devInstance = await DevToken.deployed();
+        revInstance = await RevToken.deployed();
     });
     // test inital variables
     it("init testing", async() => {
-        var balance = await devInstance.balanceOf.call(args.owners[0]);
-        assert.equal(balance.toNumber(), toWei(args.balances[0]), 
-        "initial balance of first account should be " + args.balances[0] + " DVT");
+        var balance = await devInstance.balanceOf.call(args[0].owners[0]);
+        assert.equal(balance.toNumber(), toWei(args[0].balances[0]), 
+        "initial balance of first account should be " + args[0].balances[0] + " DVT");
 
         var totalSupply = await devInstance.totalSupply.call();
-        assert.equal(totalSupply.toNumber(), toWei(args.balances[0]), 
-        "totalSupply should be " + args.balances[0] + " DVT");
+        assert.equal(totalSupply.toNumber(), toWei(args[0].balances[0]), 
+        "totalSupply should be " + args[0].balances[0] + " DVT");
         console.log("totalSupply: " + fromWei(totalSupply));
 
         var maxSupply = await devInstance.maxSupply.call();
-        assert.equal(maxSupply.toNumber(), toWei(args.maxSupply), 
-        "maxSupply should be " + args.maxSupply + " DVT");
+        assert.equal(maxSupply.toNumber(), toWei(args[0].maxSupply), 
+        "maxSupply should be " + args[0].maxSupply + " DVT");
         console.log("maxSupply: " + fromWei(maxSupply));
 
         var tokensPerEth = await devInstance.tokensPerEth.call();
-        assert.equal(tokensPerEth.toNumber(), args.tokensPerEth, 
-        "tokensPerEth should be " + args.tokensPerEth + " DVT");
+        assert.equal(tokensPerEth.toNumber(), args[0].tokensPerEth, 
+        "tokensPerEth should be " + args[0].tokensPerEth + " DVT");
         console.log("tokensPerEth: " + tokensPerEth);
         
         var maxStake = await devInstance.maxStake.call();
-        assert.equal(maxStake.toNumber(), args.maxStake, 
-        "maxStake should be " + args.maxStake + " DVT");
+        assert.equal(maxStake.toNumber(), args[0].maxStake, 
+        "maxStake should be " + args[0].maxStake + " DVT");
         console.log("maxStake: " + maxStake);
 
         var allowanceValue = await devInstance.allowanceValue.call();
-        assert.equal(allowanceValue.toNumber(), toWei(args.allowanceValue), 
-        "allowanceValue should be " + args.allowanceValue + " DVT");
+        assert.equal(allowanceValue.toNumber(), toWei(args[0].allowanceValue), 
+        "allowanceValue should be " + args[0].allowanceValue + " DVT");
         console.log("allowanceValue: " + fromWei(allowanceValue) + " ETH");
 
         var allowanceBalance = await devInstance.allowanceBalance.call();
-        assert.equal(allowanceBalance.toNumber(), toWei(args.allowanceValue), 
-        "allowanceBalance should be " + args.allowanceValue + " DVT");
+        assert.equal(allowanceBalance.toNumber(), toWei(args[0].allowanceValue), 
+        "allowanceBalance should be " + args[0].allowanceValue + " DVT");
         console.log("allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
 
         var allowanceInterval = await devInstance.allowanceInterval.call();
-        assert.equal(allowanceInterval.toNumber(), args.allowanceInterval, 
-        "allowanceInterval should be " + args.allowanceInterval + " DVT");
+        assert.equal(allowanceInterval.toNumber(), args[0].allowanceInterval, 
+        "allowanceInterval should be " + args[0].allowanceInterval + " DVT");
         console.log("allowanceInterval: " + allowanceInterval);
 
         var owner = await devInstance.owner.call();
         assert.equal(owner, accounts[0], 
         "wrong owner");
-        console.log("maxStakeinToken = %s\nmaxStakeinEth = %s\n", args.maxStakeinToken, args.maxStakeinEth);
+        console.log("maxStakeinToken = %s\nmaxStakeinEth = %s\n", args[0].maxStakeinToken, args[0].maxStakeinEth);
     });
 
     it("Funding", async() => {
-        console.log("\nbalance account 0: " + args.balances[0]);
+        console.log("\nbalance account 0: " + args[0].balances[0]);
         try {
-            var balance = await devInstance.balanceOf.call(args.owners[0]);
-            await devInstance.sendTransaction({from: args.owners[0], value: 1});
-            var balance1 = await devInstance.balanceOf.call(args.owners[0]);
+            var balance = await devInstance.balanceOf.call(args[0].owners[0]);
+            await devInstance.sendTransaction({from: args[0].owners[0], value: 1});
+            var balance1 = await devInstance.balanceOf.call(args[0].owners[0]);
             assert.fail("Testing maxStake: should have failed, balance before: " + fromWei(balance) + ", balance afterwards: " + fromWei(balance1));
         } catch(error) {
             assertVMError(error);
@@ -72,11 +75,11 @@ contract("DevToken", accounts => {
         // fill available accounts with maxStake until full
         var totalSupply = await devInstance.totalSupply.call();
         var maxSupply = await devInstance.maxSupply.call();
-        var balance0 = args.balances[0];
+        var balance0 = args[0].balances[0];
 
         for (var i = 1; i < 9; i++) {
-            if ((maxSupply-totalSupply) <= toWei(args.maxStakeinToken)) {
-                var balance = (maxSupply-totalSupply)/args.tokensPerEth;
+            if ((maxSupply-totalSupply) <= toWei(args[0].maxStakeinToken)) {
+                var balance = (maxSupply-totalSupply)/args[0].tokensPerEth;
                 await devInstance.sendTransaction({from: accounts[i], value: balance});
                 totalSupply = await devInstance.totalSupply();
                 assert.equal(totalSupply.toNumber(), maxSupply.toNumber(), 
@@ -85,9 +88,9 @@ contract("DevToken", accounts => {
                 console.log("balance account " + i + ": " + fromWei(balance) + "\n");
                 break;
             } else {
-                await devInstance.sendTransaction({from: accounts[i], value: toWei(args.maxStakeinEth)});
+                await devInstance.sendTransaction({from: accounts[i], value: toWei(args[0].maxStakeinEth)});
                 totalSupply = await devInstance.totalSupply();
-                var balance = toWei(balance0+i*args.maxStakeinToken);
+                var balance = toWei(balance0+i*args[0].maxStakeinToken);
                 assert.equal(totalSupply.toNumber(), balance,
                 "should have totalSupply of " + fromWei(balance) + " DVT, actual totalSupply: " + fromWei(totalSupply) + " DVT");
                 var balance = await devInstance.balanceOf.call(accounts[i]);
@@ -96,7 +99,6 @@ contract("DevToken", accounts => {
         }
         try {
             await devInstance.sendTransaction({from: accounts[9], value: 1});
-            var totalSupply = await devInstance.totalSupply.call();
             assert.fail("Testing maxSupply: should have failed, should not be able to invest more than maxSupply");
         } catch(error) {
             assertVMError(error);
@@ -110,37 +112,124 @@ contract("DevToken", accounts => {
             assertVMError(error);
         }
 
-        await devInstance.allowanceWithdrawal(toWei(args.allowanceValue/2),{from: accounts[0]});
+        await devInstance.allowanceWithdrawal(toWei(args[0].allowanceValue/2),{from: accounts[0]});
         var allowanceBalance = await devInstance.allowanceBalance.call();
-        assert.equal(toWei(args.allowanceValue/2), allowanceBalance.toNumber(),
-        "should have allowanceBalance of " + args.allowanceValue/2 + " ETH, actual allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
+        assert.equal(toWei(args[0].allowanceValue/2), allowanceBalance.toNumber(),
+        "should have allowanceBalance of " + args[0].allowanceValue/2 + " ETH, actual allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
         
-        await devInstance.allowanceWithdrawal(toWei(args.allowanceValue/2),{from: accounts[0]});
+        await devInstance.allowanceWithdrawal(toWei(args[0].allowanceValue/2),{from: accounts[0]});
         var allowanceBalance = await devInstance.allowanceBalance.call();
         assert.equal(0, allowanceBalance.toNumber(),
         "should have allowanceBalance of " + 0 + " ETH, actual allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
 
         try {
-            await devInstance.allowanceWithdrawal(toWei(args.allowanceValue),{from: accounts[0]});
+            await devInstance.allowanceWithdrawal(toWei(args[0].allowanceValue),{from: accounts[0]});
             assert.fail("Testing allowanceBalance: should have failed");
         } catch(error) {
             assertVMError(error);
         }
         // wait x seconds to check balance after allowance interval 
-        wait(args.allowanceInterval);
-        await devInstance.allowanceWithdrawal(toWei(args.allowanceValue),{from: accounts[0]});
+        wait(args[0].allowanceInterval);
+        await devInstance.allowanceWithdrawal(toWei(args[0].allowanceValue),{from: accounts[0]});
         var allowanceBalance = await devInstance.allowanceBalance.call();
         assert.equal(0, allowanceBalance.toNumber(),
         "should have allowanceBalance of " + 0 + " ETH, actual allowanceBalance: " + fromWei(allowanceBalance) + " ETH");
         
         try {
-            await devInstance.allowanceWithdrawal(toWei(args.allowanceValue),{from: accounts[0]});
+            await devInstance.allowanceWithdrawal(toWei(args[0].allowanceValue),{from: accounts[0]});
             assert.fail("Testing allowanceBalance: should have failed");
         } catch(error) {
             assertVMError(error);
         }
     })
+    it("set/check DevToken and RevToken addresses", async() => {
+        try {
+            await devInstance.setRevContract(RevToken.address, {from: accounts[1]});
+            assert.fail("Testing setRevContract: should have failed, wrong address");
+        } catch(error) {
+            assertVMError(error);
+        }
+        try {
+            await devInstance.setRevContract(0x0, {from: accounts[0]});
+            assert.fail("Testing setRevContract: should have failed, 0x0 as parameter");
+        } catch(error) {
+            assertVMError(error);
+        }
+        try {
+            await devInstance.swap(0, {from: accounts[0]});
+            assert.fail("Testing setRevContract: should have failed, address not set yet");
+        } catch(error) {
+            assertVMError(error);
+        }
+        await devInstance.setRevContract(RevToken.address, {from: accounts[0]});
+        var revAddress = await devInstance.RevTokenAddress.call();
+        assert.equal(revAddress, RevToken.address,
+        "RevToken Address: " + revAddress + " should be equal to " + RevToken.address);
+        console.log("\nRevTokenAddress: " + revAddress);
+        try {
+            await devInstance.setRevContract(RevToken.address, {from: accounts[0]});
+            assert.fail("Testing setRevContract: should have failed, address already set");
+        } catch(error) {
+            assertVMError(error);
+        }
+        var devAddress = await revInstance.DevTokenAddress.call();
+        assert.equal(devAddress, DevToken.address,
+        "DevToken Address: " + devAddress + " should be equal to " + DevToken.address);
+        console.log("DevTokenAddress: " + devAddress);
+
+        try {
+            await revInstance.swap(1,accounts[0], {from: accounts[0]});
+            assert.fail("Testing address swap (revToken): should have failed, wrong address (not DevTokenContract)");
+        } catch(error) {
+            assertVMError(error);
+        }
+
+        var devBalance = await devInstance.balanceOf.call(accounts[0]);
+        try {
+            await devInstance.swap(devBalance+1, {from: accounts[0]});
+            assert.fail("Testing swap account balance: should have failed, insufficient account balance");
+        } catch(error) {
+            assertVMError(error);
+        }
+
+        var revBalance = await revInstance.balanceOf.call(accounts[0]);
+        var revBalanceEnterprise = await revInstance.balanceOf.call("0xDEB80077101d919b6ad1e004Cff36203A0F0CE60");
+        var devTotalSupply = await devInstance.totalSupply.call();
+        var devMaxSupply = await devInstance.maxSupply.call();
+        var revTotalSupply = await revInstance.totalSupply.call();
+        
+        assert.equal(0,revBalance.toNumber(),
+        "should have rev balance of " + 0 + ", actual balance " + fromWei(revBalance));
+        assert.equal(0,revBalanceEnterprise.toNumber(),
+        "should have rev enterprise balance of " + 0 + ", actual balance " + fromWei(revBalanceEnterprise));
+        assert.equal(0,revTotalSupply.toNumber(),
+        "should have rev totalSupply of " + 0 + ", actual balance " + fromWei(revTotalSupply));
+        
+        console.log("swapping 1 DVT\n");
+        devInstance.swap(toWei(1), {from: accounts[0]});
+
+        revBalance = await revInstance.balanceOf.call(accounts[0]);
+        revBalanceEnterprise = await revInstance.balanceOf.call("0xDEB80077101d919b6ad1e004Cff36203A0F0CE60");
+        devTotalSupply = await devInstance.totalSupply.call();
+        devMaxSupply = await devInstance.maxSupply.call();
+        revTotalSupply = await revInstance.totalSupply.call();
+
+        assert.equal(toWei(1),revBalance.toNumber(),
+        "should have rev balance of " + 1 + ", actual balance " + fromWei(revBalance));
+        assert.equal(toWei(0.05),revBalanceEnterprise.toNumber(),
+        "should have rev enterprise balance of " + 0.05 + ", actual balance " + fromWei(revBalanceEnterprise));
+        assert.equal(toWei(1.05),revTotalSupply.toNumber(),
+        "should have rev totalSupply of " + 1.05 + ", actual balance " + fromWei(revTotalSupply));
+    });
 });
+
+contract("RevToken", accounts => {
+    var args = require("../constructor.js")(accounts);
+    before(async() => {
+        devInstance = await DevToken.deployed();
+        // revInstance = await RevToken.deployed();
+    });
+})
 
 function assertVMError(error){
     if(error.message.search('VM Exception')==-1)console.log(error);
