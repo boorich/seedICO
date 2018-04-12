@@ -143,6 +143,7 @@ contract Voting_Task is OwnerAllowance {
     mapping(address => uint256) lastProposal_Task;
     uint256 proposalDuration_Task;
     uint256 minVotes_Task;
+    uint256 ratio_Task;
 
     event ProposalCreation_Task(uint256 indexed ID, string indexed description);
     event UserVote_Task(uint256 indexed ID, address indexed user, bool indexed value);
@@ -168,7 +169,7 @@ contract Voting_Task is OwnerAllowance {
     // array of polls
     Proposal_Task[] public proposals_Task;
 
-    function propose(string _name, string _description, uint256 _value) public onlyTokenHolder {
+    function propose_Task(string _name, string _description, uint256 _value) external onlyTokenHolder {
 
         require(_value > address(this).balance);
         // allows one proposal per week and resets value after successful proposal
@@ -187,14 +188,14 @@ contract Voting_Task is OwnerAllowance {
     }
 
     // vote on a development task
-    function vote(uint256 _ID, bool _vote) public onlyTokenHolder {
+    function vote_Task(uint256 _ID, bool _vote) external onlyTokenHolder {
 
         // proposal has to be active
         require(proposals_Task[_ID].active);
 
         // proposal has to be active less than one week
         if (now.sub(proposals_Task[_ID].start) >= proposalDuration_Task) {
-            end(_ID);
+            end_Task(_ID);
         }
 
         // checks if tokenholder has already voted
@@ -217,7 +218,7 @@ contract Voting_Task is OwnerAllowance {
 
 
     // end voting for a development task
-    function end(uint256 _ID) public onlyTokenHolder {
+    function end_Task(uint256 _ID) public onlyTokenHolder {
 
         // requires proposal to be running for a week
         require(now.sub(proposals_Task[_ID].start) >= proposalDuration_Task);
@@ -227,7 +228,7 @@ contract Voting_Task is OwnerAllowance {
         proposals_Task[_ID].active = false;
 
         // rejects proposal if not enough people voted on it
-        if (proposals_Task[_ID].no.add(proposals_Task[_ID].yes) < (minVotes_Task.mul(totalSupply))/100) {
+        if (proposals_Task[_ID].no.mul(ratio_Task).add(proposals_Task[_ID].yes.mul(100-ratio_Task)) < (minVotes_Task.mul(totalSupply))/100) {
             // event generation
             emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Participation too low");
 
@@ -236,7 +237,7 @@ contract Voting_Task is OwnerAllowance {
             proposals_Task[_ID].accepted = true;
             // event generation
             emit SuccessfulProposal_Task(_ID, proposals_Task[_ID].description, proposals_Task[_ID].value);
-
+            payReward_Task(_ID);
         } else {
             // event generation
             emit RejectedProposal_Task(_ID, proposals_Task[_ID].description, "Proposal rejected by vote");
@@ -244,43 +245,49 @@ contract Voting_Task is OwnerAllowance {
 
     }
 
-    function getProposalLength() public view returns(uint256 length) {
+    function payReward_Task(uint256 _ID) public {
+        require(proposals_Task[_ID].accepted && !proposals_Task[_ID].rewarded);
+        proposals_Task[_ID].rewarded = true;
+        owner.transfer(proposals_Task[_ID].value);
+    }
+
+    function getProposalLength_Task() public view returns(uint256 length) {
         return proposals_Task.length;
     }
 
-    function getProposalName(uint256 _ID) public view returns(string name) {
+    function getProposalName_Task(uint256 _ID) public view returns(string name) {
         return proposals_Task[_ID].name;
     }
 
-    function getProposalDescription(uint256 _ID) public view returns(string description) {
+    function getProposalDescription_Task(uint256 _ID) public view returns(string description) {
         return proposals_Task[_ID].description;
     }
 
-    function getProposalValue(uint256 _ID) public view returns(uint256 value) {
+    function getProposalValue_Task(uint256 _ID) public view returns(uint256 value) {
         return proposals_Task[_ID].value;
     }
 
-    function getProposalStart(uint256 _ID) public view returns(uint256 start) {
+    function getProposalStart_Task(uint256 _ID) public view returns(uint256 start) {
         return proposals_Task[_ID].start;
     }
 
-    function getProposalYes(uint256 _ID) public view returns(uint256 yes) {
+    function getProposalYes_Task(uint256 _ID) public view returns(uint256 yes) {
         return proposals_Task[_ID].yes;
     }
 
-    function getProposalNo(uint256 _ID) public view returns(uint256 no) {
+    function getProposalNo_Task(uint256 _ID) public view returns(uint256 no) {
         return proposals_Task[_ID].no;
     }
 
-    function getProposalActive(uint256 _ID) public view returns(bool active) {
+    function getProposalActive_Task(uint256 _ID) public view returns(bool active) {
         return proposals_Task[_ID].active;
     }
 
-    function getProposalAccepted(uint256 _ID) public view returns(bool accepted) {
+    function getProposalAccepted_Task(uint256 _ID) public view returns(bool accepted) {
         return proposals_Task[_ID].accepted;
     }
 
-    function getProposalRewarded(uint256 _ID) public view returns(bool rewarded) {
+    function getProposalRewarded_Task(uint256 _ID) public view returns(bool rewarded) {
         return proposals_Task[_ID].rewarded;
     }
 }
@@ -317,7 +324,7 @@ contract DevToken is DevRev {
         // arguments OwnerAllowance
         uint256 _allowanceInterval, uint256 _allowanceValue,
         // arguments TaskVoting
-        uint256 _proposalDuration_Task, uint256 _minVotes_Task
+        uint256 _proposalDuration_Task, uint256 _minVotes_Task, uint256 _ratio_Task
         ) public {
 
         // constructor Token
@@ -346,5 +353,7 @@ contract DevToken is DevRev {
         // constructor TaskVoting
         proposalDuration_Task = _proposalDuration_Task;
         minVotes_Task = _minVotes_Task;
+        require(_ratio_Task > 0 && _ratio_Task <= 100);
+        ratio_Task = _ratio_Task;
     }
 }
