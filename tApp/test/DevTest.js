@@ -8,7 +8,7 @@ contract("DevToken", accounts => {
         devInstance = await DevToken.deployed();
         revInstance = await RevToken.deployed();
     });
-    // test inital variables
+
     it("init testing", async() => {
         var balance = await devInstance.balanceOf.call(args[0].owners[0]);
         assert.equal(balance.toNumber(), toWei(args[0].balances[0]), 
@@ -147,6 +147,7 @@ contract("DevToken", accounts => {
 
     it("TaskVoting testing", async() => {
         // testing proposeTask
+        console.log("\nTesting TaskVoting with balances\naccount 0:40\naccount 0:25\naccount 0:25\naccount 0:10")
         try {
             await devInstance.propose_Task("test-name-1", "test-description-1", toWei(1) , {from: accounts[9]});
             assert.fail("Testing onlyTokenholder Modifier: should have failed");
@@ -159,21 +160,89 @@ contract("DevToken", accounts => {
         } catch(error) {
             assertVMError(error);
         }
+
         await devInstance.propose_Task("test-name-1", "test-description-1", toWei(1) , {from: accounts[0]});
         var proposalLength = await devInstance.getProposalLength_Task.call();
         assert.equal(1, proposalLength.toNumber(),
         "should have proposalLength of " + 1 + ", actual proposalLength: " + proposalLength.toNumber());
+
         try {
             await devInstance.propose_Task("test-name-1", "test-description-1", toWei(1), {from: accounts[0]});
-            assert.fail("Testing proposalDuration_Task: should have failed");
+            assert.fail("Testing proposalDuration_Task: should have failed (account already has active proposal)");
         } catch(error) {
             assertVMError(error);
         }
+
         wait(args[0].proposalDuration_Task);
+
         await devInstance.propose_Task("test-name-2", "test-description-2", toWei(1) , {from: accounts[0]});
         var proposalLength = await devInstance.getProposalLength_Task.call();
         assert.equal(2, proposalLength.toNumber(),
         "should have proposalLength of " + 2 + ", actual proposalLength: " + proposalLength.toNumber());
+
+        // testing voteTask
+        await devInstance.vote_Task(1,false, {from: accounts[0]});
+        try {
+            await devInstance.vote_Task(1,false, {from: accounts[0]});
+            assert.fail("testing Voting: should have failed, already voted.");
+        } catch(error) {
+            assertVMError(error);
+        }
+        await devInstance.vote_Task(1,true, {from: accounts[1]});
+        await devInstance.vote_Task(1,true, {from: accounts[2]});
+        await devInstance.vote_Task(1,true, {from: accounts[3]});
+
+        await devInstance.propose_Task("test-name-3", "test-description-3", toWei(1) , {from: accounts[1]});
+        var proposalLength = await devInstance.getProposalLength_Task.call();
+        assert.equal(3, proposalLength.toNumber(),
+        "should have proposalLength of " + 3 + ", actual proposalLength: " + proposalLength.toNumber());
+
+        await devInstance.vote_Task(2,true, {from: accounts[0]});
+        await devInstance.vote_Task(2,false, {from: accounts[1]});
+        await devInstance.vote_Task(2,false, {from: accounts[2]});
+        await devInstance.vote_Task(2,false, {from: accounts[3]});
+
+        // testing endTask
+        try {
+            await devInstance.end_Task(2, {from:accounts[0]});
+            assert.fail("testing proposalDuration_Task, should have failed, proposal still running");
+        } catch(error) {
+            assertVMError(error);
+        }
+        // ending task via vote:
+        // proposal 0 should get rejected because participation is too low
+        await devInstance.vote_Task(0,true, {from: accounts[0]});
+        var active = await devInstance.getProposalActive_Task.call(0);
+        var accepted = await devInstance.getProposalAccepted_Task.call(0);
+        var rewarded = await devInstance.getProposalRewarded_Task.call(0);
+        assert.equal(active, false, "proposal 0 active is: " + active + ", should be: " + false);
+        assert.equal(accepted, false, "proposal 0 accepted is: " + accepted + ", should be: " + false);
+        assert.equal(rewarded, false, "proposal 0 rewarded is: " + rewarded + ", should be: " + false);
+
+        wait(args[0].proposalDuration_Task);
+
+        // ending task via end call:
+        // proposal 2 should get rejected due to votes
+        await devInstance.end_Task(2, {from: accounts[0]});
+        active = await devInstance.getProposalActive_Task.call(2);
+        accepted = await devInstance.getProposalAccepted_Task.call(2);
+        rewarded = await devInstance.getProposalRewarded_Task.call(2);
+        assert.equal(active, false, "proposal 2 active is: " + active + ", should be: " + false);
+        assert.equal(accepted, false, "proposal 2 accepted is: " + accepted + ", should be: " + false);
+        assert.equal(rewarded, false, "proposal 2 rewarded is: " + rewarded + ", should be: " + false);
+        
+        // testing successful proposal 1 and reward payout
+        var balance = web3.eth.getBalance(accounts[0]);
+        await devInstance.end_Task(1, {from: accounts[1]});
+        var balance1 = web3.eth.getBalance(accounts[0]);
+        active = await devInstance.getProposalActive_Task.call(1);
+        accepted = await devInstance.getProposalAccepted_Task.call(1);
+        rewarded = await devInstance.getProposalRewarded_Task.call(1);
+        assert.equal(active, false, "proposal 1 active is: " + active + ", should be: " + false);
+        assert.equal(accepted, true, "proposal 1 accepted is: " + accepted + ", should be: " + true);
+        assert.equal(rewarded, true, "proposal 1 rewarded is: " + rewarded + ", should be: " + true);
+        assert.equal(balance.plus(toWei(1)).toString(10), balance1.toString(10),
+        "balance after task payout: " + fromWei(balance.plus(toWei(1))) + ", should be: " + fromWei(balance1));
     });
 
     it("set/check DevToken and RevToken addresses", async() => {
@@ -220,7 +289,7 @@ contract("DevToken", accounts => {
 
         var devBalance = await devInstance.balanceOf.call(accounts[0]);
         try {
-            await devInstance.swap(devBalance+1, {from: accounts[0]});
+            await devInstance.swap(devBalance.plus(1), {from: accounts[0]});
             assert.fail("Testing swap account balance: should have failed, insufficient account balance");
         } catch(error) {
             assertVMError(error);
@@ -278,7 +347,7 @@ function fromWei(x) {
 function wait(seconds) {
     var wait = new Date().getTime();
     var waitend = wait;
-    while(waitend < wait + seconds*(1000)) {
+    while(waitend < wait + (seconds+1)*(1000)) {
         waitend = new Date().getTime();
     }
 }

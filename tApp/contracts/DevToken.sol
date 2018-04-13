@@ -203,7 +203,7 @@ contract Voting_Task is OwnerAllowance {
         // registers vote
         proposals_Task[_ID].voted[msg.sender] = true;
 
-        // if the value is 0 it's considered no
+        // if the value is false it's considered no
         if (_vote) {
             // registers the balance of msg.sender as a yes vote
             proposals_Task[_ID].yes = proposals_Task[_ID].yes.add(balanceOf[msg.sender]);
