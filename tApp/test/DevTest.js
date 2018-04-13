@@ -17,7 +17,7 @@ contract("DevToken", accounts => {
         var totalSupply = await devInstance.totalSupply.call();
         assert.equal(totalSupply.toNumber(), toWei(args[0].balances[0]), 
         "totalSupply should be " + args[0].balances[0] + " DVT");
-        console.log("totalSupply: " + fromWei(totalSupply));
+        console.log("\ntotalSupply: " + fromWei(totalSupply));
 
         var maxSupply = await devInstance.maxSupply.call();
         assert.equal(maxSupply.toNumber(), toWei(args[0].maxSupply), 
@@ -147,7 +147,7 @@ contract("DevToken", accounts => {
 
     it("TaskVoting testing", async() => {
         // testing proposeTask
-        console.log("\nTesting TaskVoting with balances\naccount 0:40\naccount 0:25\naccount 0:25\naccount 0:10")
+        console.log("\nTesting TaskVoting with balances\naccount 0:40\naccount 0:25\naccount 0:25\naccount 0:10\n")
         try {
             await devInstance.propose_Task("test-name-1", "test-description-1", toWei(1) , {from: accounts[9]});
             assert.fail("Testing onlyTokenholder Modifier: should have failed");

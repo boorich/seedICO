@@ -72,7 +72,7 @@ contract Token {
 contract Owned is Token {
     // address of the developers
     address public owner;
-    // modifiers: only allows Owner/Pool/Contract to call certain functions
+    // modifiers: only allows Owner/Contract to call certain functions
     modifier onlyOwner {
         require(msg.sender == owner);
         _;
@@ -315,8 +315,16 @@ contract DevRev is Voting_Task {
 
 }
 
+contract KYC is DevRev {
+
+    function shareCap() public view returns (uint256 shareCap) {
+        return totalSupply;
+    }
+
+}
+
 // DevRevToken combines DevToken and RevToken into one token
-contract DevToken is DevRev {
+contract DevToken is KYC {
     function DevToken(
         // arguments Token
         string _name, string _symbol,
