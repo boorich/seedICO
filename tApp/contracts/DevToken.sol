@@ -160,6 +160,7 @@ contract OwnerAllowance is Funding {
     /// @notice The owner is able to withdraw `allowanceValue` every `allowanceInterval` seconds
     /// @param _value The amount of ETH that the owner wishes to withdraw
     function allowanceWithdrawal(uint256 _value) public onlyOwner {
+        uint256 value = _value * 10 ** 18;
         // If the time that has passed since the last use of the allowance exceeds the interval
         if (now.sub(allowanceTimeCounter) > allowanceInterval) {
             // resetting the balance to the allowance amount per interval
@@ -169,10 +170,10 @@ contract OwnerAllowance is Funding {
             allowanceTimeCounter = now;
         }
         // subtracting the desired amount of ETH from the current balance
-        allowanceBalance = allowanceBalance.sub(_value);
+        allowanceBalance = allowanceBalance.sub(value);
 
         // transferring the desired amount of ETH to the owners address
-        owner.transfer(_value);
+        owner.transfer(value);
     }
 }
 
@@ -223,8 +224,9 @@ contract Voting_Task is OwnerAllowance {
     /// @param _description The description of the proposed task
     /// @param _value The value of the proposed task in ETH
     function propose_Task(string _name, string _description, uint256 _value) external onlyTokenHolder {
+        uint256 value = _value * 10 ** 18;
         // the ETH balance of the contract has to be at least the same as the value of the proposed task 
-        require(_value <= address(this).balance);
+        require(value <= address(this).balance);
 
         // allows one proposal per interval for each token-holder
         require(now.sub(lastProposal_Task[msg.sender]) > proposalDuration_Task);
@@ -236,7 +238,7 @@ contract Voting_Task is OwnerAllowance {
         uint256 ID = proposals_Task.length;
 
         // initializes new proposal as a struct and pushes it into the proposal array
-        proposals_Task.push(Proposal_Task({ID: ID, name: _name, description: _description, value: _value, start: now, yes: 0, no: 0, active: true, accepted: false, rewarded: false}));
+        proposals_Task.push(Proposal_Task({ID: ID, name: _name, description: _description, value: value, start: now, yes: 0, no: 0, active: true, accepted: false, rewarded: false}));
 
         // event emitted for proposal creation
         emit ProposalCreation_Task(ID, _description);
@@ -489,12 +491,13 @@ contract DevToken is KYC {
 
         // loop over said arrays
         for (uint256 i = 0; i < _owners.length; i++) {
+            uint256 value = _balances[i] * 10 ** 18;
             // Adding the specified amount of tokens to their balances
-            balanceOf[_owners[i]] = balanceOf[_owners[i]].add(_balances[i]);
+            balanceOf[_owners[i]] = balanceOf[_owners[i]].add(value);
             // Increasing the count of issued tokes accordingly
-            totalSupply = totalSupply.add(_balances[i]);
+            totalSupply = totalSupply.add(value);
             // emitting the ERC20-Transfer event
-            emit Transfer(address(this), _owners[i], _balances[i]);
+            emit Transfer(address(this), _owners[i], value]);
         }
 
         // maximum number of tokens has to be greater than or equal to the currently issued token count
@@ -507,8 +510,9 @@ contract DevToken is KYC {
         // constructor: OwnerAllowance
         allowanceTimeCounter = now;
         allowanceInterval = _allowanceInterval;
-        allowanceValue = _allowanceValue;
-        allowanceBalance = _allowanceValue;
+        uint256 avalue = _allowanceValue * 10 ** 18;
+        allowanceValue = avalue;
+        allowanceBalance = avalue;
 
         // constructor: TaskVoting
         proposalDuration_Task = _proposalDuration_Task;
