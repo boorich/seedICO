@@ -497,7 +497,7 @@ contract DevToken is KYC {
             // Increasing the count of issued tokes accordingly
             totalSupply = totalSupply.add(value);
             // emitting the ERC20-Transfer event
-            emit Transfer(address(this), _owners[i], value]);
+            emit Transfer(address(this), _owners[i], value);
         }
 
         // maximum number of tokens has to be greater than or equal to the currently issued token count
