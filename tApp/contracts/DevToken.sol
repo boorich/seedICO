@@ -480,7 +480,8 @@ contract DevToken is KYC {
 
         // constructor: Additional Token-Variables
         owner = msg.sender;
-        maxSupply = _maxSupply;
+        uint256 maxvalue = _maxSupply * 10 ** 18;
+        maxSupply = maxvalue;
 
         // at least 1 Token should be received per ETH/Wei
         require(_tokensPerEth > 0);
@@ -501,7 +502,7 @@ contract DevToken is KYC {
         }
 
         // maximum number of tokens has to be greater than or equal to the currently issued token count
-        require(_maxSupply >= totalSupply);
+        require(maxSupply >= totalSupply);
 
         // percentage of tokens anyone can hold needs to be a value from 1 to 100
         require(_maxStake > 0 && _maxStake <= 100);        
