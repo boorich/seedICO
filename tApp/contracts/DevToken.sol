@@ -23,7 +23,9 @@ Arguments (with example-values):
 };
 */
 
-pragma solidity 0.4.21;
+// CHECK SECURITY/SIDE EFFECTS WHEN CALLING ANOTHER METHOD if/else
+
+pragma solidity 0.4.23;
 
 /// @title Interface for Revenue Token
 /// @author chainge.network
@@ -256,25 +258,24 @@ contract Voting_Task is OwnerAllowance {
         if (now.sub(proposals_Task[_ID].start) >= proposalDuration_Task) {
             // ending of the proposal
             end_Task(_ID);
-        }
-
-        // checks if tokenholder has already voted
-        require(!proposals_Task[_ID].voted[msg.sender]);
-
-        // registers vote
-        proposals_Task[_ID].voted[msg.sender] = true;
-
-        // if the value of _vote is false it's considered no
-        if (_vote) {
-            // registers the balance of msg.sender as a yes vote
-            proposals_Task[_ID].yes = proposals_Task[_ID].yes.add(balanceOf[msg.sender]);
         } else {
-            // registers the balance of msg.sender as a no vote
-            proposals_Task[_ID].no = proposals_Task[_ID].no.add(balanceOf[msg.sender]);
-        }
-        // event emitted for token-holder vote
-        emit UserVote_Task(_ID, msg.sender, _vote, balanceOf[msg.sender]);
+            // checks if tokenholder has already voted
+            require(!proposals_Task[_ID].voted[msg.sender]);
 
+            // registers vote
+            proposals_Task[_ID].voted[msg.sender] = true;
+
+            // if the value of _vote is false it's considered no
+            if (_vote) {
+                // registers the balance of msg.sender as a yes vote
+                proposals_Task[_ID].yes = proposals_Task[_ID].yes.add(balanceOf[msg.sender]);
+            } else {
+                // registers the balance of msg.sender as a no vote
+                proposals_Task[_ID].no = proposals_Task[_ID].no.add(balanceOf[msg.sender]);
+            }
+            // event emitted for token-holder vote
+            emit UserVote_Task(_ID, msg.sender, _vote, balanceOf[msg.sender]);
+        }
     }
 
 
@@ -443,11 +444,17 @@ contract KYC is DevRev {
 
 }
 
+/// @title Contract that handles capital increase
+/// @author chainge.network
+contract CapitalIncrease is KYC {
+    
+}
+
 /// @title Constructing contract of the DevToken and the RevToken
 /// @author chainge.network
 /// @notice Connects the DevToken and the RevToken
 /// @dev This is the contract to be deployed; all constructur values are mandatory
-contract DevToken is KYC {
+contract DevToken is CapitalIncrease {
     /// @notice Constructor of the DevToken that is being deployed
     /// @dev All constructur values are mandatory
     /// @param _name Name of the token
